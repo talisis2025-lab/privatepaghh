@@ -1,0 +1,2555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmon Hall - Buscador</title>
+    <link rel="icon" type="image/jpeg" href="https://strat-branding.com/wp-content/uploads/2022/04/sb-harmon-hall.jpg">
+    <link rel="preconnect" href="https://cdn.sheetjs.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://accounts.google.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --hh-yellow: #FFEA00;
+            --hh-black: #000000;
+            --hh-white: #FFFFFF;
+            --hh-red: #cc1e3d;
+            --hh-green: #198754;
+            --hh-blue: #0d6efd;
+            --bg: var(--hh-yellow);
+            --card-bg: rgba(255,255,255,0.92);
+            --text: var(--hh-black);
+            --header-text: var(--hh-black);
+            --border: rgba(0,0,0,0.08);
+            --input-bg: rgba(255,255,255,0.95);
+            --input-border: rgba(0,0,0,0.12);
+            --info-box: rgba(245,245,245,0.85);
+            --alert-bg: #ffebee;
+            --alert-text: var(--hh-red);
+            --franchise-bg: rgba(255,240,240,0.92);
+            --franchise-border: rgba(204,30,61,0.25);
+            --shadow: 0 20px 60px rgba(0,0,0,0.12);
+            --shadow-soft: 0 12px 30px rgba(0,0,0,0.08);
+            --shadow-lift: 0 30px 70px rgba(0,0,0,0.18);
+            --radius-lg: 32px;
+            --radius-md: 20px;
+            --radius-sm: 16px;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --card-bg: rgba(30,30,30,0.92);
+            --text: #ffffff;
+            --header-text: var(--hh-yellow);
+            --border: rgba(255,255,255,0.08);
+            --input-bg: rgba(40,40,40,0.95);
+            --input-border: rgba(255,255,255,0.15);
+            --info-box: rgba(45,45,45,0.85);
+            --alert-bg: #4a151b;
+            --alert-text: #ff8a9f;
+            --franchise-bg: rgba(60,20,25,0.92);
+            --franchise-border: rgba(204,30,61,0.35);
+            --shadow: 0 20px 60px rgba(0,0,0,0.45);
+            --shadow-soft: 0 12px 30px rgba(0,0,0,0.35);
+            --shadow-lift: 0 30px 70px rgba(0,0,0,0.55);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 24px 20px;
+            min-height: 100vh;
+            transition: background-color 0.6s cubic-bezier(0.32, 0.72, 0, 1);
+            overflow-x: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ── Animated background ── */
+        .wave-bg {
+            position: fixed;
+            inset: -80px;
+            z-index: -2;
+            background: linear-gradient(135deg, rgba(255,234,0,0.75) 0%, rgba(255,244,170,0.45) 50%, rgba(255,234,0,0.75) 100%);
+            animation: waveFloat 28s ease-in-out infinite;
+        }
+        [data-theme="dark"] .wave-bg {
+            background: linear-gradient(135deg, rgba(20,20,20,0.95) 0%, rgba(35,35,35,0.75) 50%, rgba(20,20,20,0.95) 100%);
+            inset: -80px;
+        }
+        [data-theme="dark"] .wave-bg::before {
+            background: radial-gradient(circle at 30% 20%, rgba(255,234,0,0.22) 0%, transparent 65%);
+        }
+        @keyframes waveFloat {
+            0%, 100% { transform: translate(0,0) rotate(0deg); }
+            50% { transform: translate(30px,-30px) rotate(1deg); }
+        }
+        .wave-bg::before {
+            content: "";
+            position: absolute;
+            inset: -200px;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35) 0%, transparent 60%);
+            animation: subtlePulse 18s ease-in-out infinite;
+        }
+        @keyframes subtlePulse {
+            0%, 100% { opacity: 0.35; transform: scale(1); }
+            50% { opacity: 0.55; transform: scale(1.08); }
+        }
+
+        /* ── Header ── */
+        .header {
+            width: 100%;
+            max-width: 1320px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 8px 28px;
+            margin-bottom: 12px;
+        }
+        .logo-section { display: flex; align-items: center; gap: 14px; }
+        .header-title h1 {
+            margin: 0;
+            font-size: clamp(2.1rem, 5vw, 2.8rem);
+            font-weight: 900;
+            color: var(--header-text);
+            letter-spacing: -1.8px;
+            line-height: 1;
+            text-transform: uppercase;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            user-select: none;
+        }
+        .header-title h1:hover { transform: scale(1.04); }
+
+        .dark-mode-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.92em;
+            font-weight: 800;
+            background: var(--card-bg);
+            padding: 12px 20px;
+            border-radius: 999px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            user-select: none;
+        }
+        .dark-mode-toggle:hover { transform: scale(1.08) translateY(-2px); box-shadow: var(--shadow-lift); }
+        .dark-mode-toggle:active { transform: scale(0.95); }
+
+        /* ══════════════════════════════════════════
+           TWO-COLUMN LAYOUT
+           ══════════════════════════════════════════ */
+        .layout-wrapper {
+            width: 100%;
+            max-width: 1320px;
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        /* LEFT: sticky search panel */
+        .left-panel {
+            width: 360px;
+            min-width: 300px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 24px;
+        }
+
+        /* RIGHT: scrollable results panel */
+        .right-panel {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Label above results */
+        .results-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78em;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text);
+            opacity: 0.38;
+            padding: 0 4px;
+            margin-bottom: 18px;
+            user-select: none;
+        }
+
+        /* Initial placeholder when no search yet */
+        .right-empty-state {
+            text-align: center;
+            padding: 100px 24px;
+            opacity: 0.22;
+            color: var(--text);
+            user-select: none;
+        }
+        .right-empty-state i { font-size: 4em; display: block; margin-bottom: 20px; }
+        .right-empty-state p { margin: 0; font-weight: 800; font-size: 1.05em; line-height: 1.5; }
+
+        /* ── Section cards ── */
+        .seccion {
+            margin-bottom: 16px;
+            padding: 24px 22px;
+            border-radius: var(--radius-lg);
+            background: var(--card-bg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(28px);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .seccion:hover { transform: translateY(-6px); box-shadow: var(--shadow-lift); }
+
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 900;
+            color: var(--text);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            opacity: 0.85;
+        }
+
+        .busqueda-wrap { position: relative; z-index: 200; }
+        .busqueda-wrap::before {
+            content: "\f002";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            left: 22px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text);
+            opacity: 0.45;
+            font-size: 1.1em;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px 48px 15px 54px;
+            border: 2px solid var(--input-border);
+            border-radius: 28px;
+            outline: none;
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 1.08em;
+            font-weight: 500;
+            box-shadow: inset 0 4px 12px rgba(0,0,0,0.04);
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        input[type="text"]:focus {
+            border-color: var(--hh-yellow);
+            box-shadow: 0 0 0 5px rgba(255,234,0,0.22), inset 0 4px 12px rgba(0,0,0,0.04);
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        .btn-limpiar {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text);
+            opacity: 0;
+            visibility: hidden;
+            cursor: pointer;
+            font-size: 1.2em;
+            z-index: 10;
+            transition: all 0.3s ease;
+            padding: 8px;
+        }
+        .btn-limpiar.visible { opacity: 0.45; visibility: visible; }
+        .btn-limpiar.visible:hover { opacity: 1; transform: translateY(-50%) scale(1.15); color: var(--hh-red); }
+
+        .btn-buscar {
+            width: 100%;
+            padding: 15px 20px;
+            background: linear-gradient(180deg, #111111 0%, #000000 100%);
+            color: var(--hh-white);
+            border: none;
+            border-radius: 28px;
+            cursor: pointer;
+            font-weight: 900;
+            font-size: 1.05em;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-top: 12px;
+            box-shadow: 0 14px 28px rgba(0,0,0,0.22);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .btn-buscar:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 22px 40px rgba(0,0,0,0.28); }
+        .btn-buscar:active { transform: scale(0.96); }
+
+        select.btn-buscar {
+            width: 100%;
+            background: var(--input-bg);
+            border: 2px solid var(--input-border);
+            border-radius: 24px;
+            padding: 16px 18px;
+            font-weight: 700;
+            margin-bottom: 0px;
+            box-shadow: inset 0 3px 10px rgba(0,0,0,0.06);
+            appearance: none;
+            color: var(--text) !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-position: right 18px center;
+            background-repeat: no-repeat;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        select.btn-buscar:focus { border-color: var(--hh-yellow); box-shadow: 0 0 0 5px rgba(255,234,0,0.22); transform: translateY(-2px); }
+        select.btn-buscar option { color: var(--text) !important; background-color: var(--card-bg) !important; padding: 12px 18px; font-weight: 700; }
+
+        .program-picker {
+            display: grid;
+            grid-template-columns: minmax(120px, 0.45fr) minmax(0, 1fr);
+            align-items: center;
+            gap: 14px;
+            margin: 16px 0 14px;
+            padding: 12px 14px;
+            background: var(--info-box);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .program-picker-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-transform: none;
+            opacity: 0.72;
+        }
+        .program-select {
+            width: 100%;
+            min-height: 42px;
+            padding: 9px 38px 9px 12px;
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            background-color: var(--input-bg);
+            color: var(--text);
+            font: inherit;
+            font-weight: 700;
+            outline: none;
+            appearance: none;
+            background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+            background-position: calc(100% - 17px) 18px, calc(100% - 11px) 18px;
+            background-size: 6px 6px, 6px 6px;
+            background-repeat: no-repeat;
+        }
+        .program-select:focus { border-color: var(--hh-yellow); box-shadow: 0 0 0 3px rgba(255,234,0,0.22); }
+
+        /* ── Results ── */
+        #resultado {
+            margin-top: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding-bottom: 120px;
+        }
+
+        .result-card {
+            background: var(--card-bg);
+            padding: 24px 22px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            position: relative;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            backdrop-filter: blur(24px);
+            transition: all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: cardPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            content-visibility: auto;
+            contain-intrinsic-size: auto 640px;
+        }
+        .result-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lift); }
+        @keyframes cardPop {
+            from { opacity: 0; transform: translateY(40px) scale(0.92); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .result-card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0;
+            height: 6px; width: 100%;
+            background: linear-gradient(90deg, var(--hh-yellow), var(--hh-red));
+        }
+
+        .instituto-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .instituto-nombre { font-size: 1.45em; font-weight: 800; letter-spacing: 0; line-height: 1.15; }
+
+        .type-badge {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.73em;
+            font-weight: 900;
+            color: var(--hh-white);
+            letter-spacing: 0.6px;
+            margin-top: 8px;
+            display: inline-block;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .type-badge.own         { background: var(--hh-green); }
+        .type-badge.consolidado { background: var(--hh-blue); }
+        .type-badge.franchise   { background: var(--hh-red); }
+
+        .panel-gris {
+            background: var(--info-box);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-top: 12px;
+            margin-bottom: 14px;
+        }
+        .panel-franchise { background: var(--franchise-bg); border-left: 5px solid var(--hh-red); }
+
+        .grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 18px; }
+
+        .data-stack { display: flex; flex-direction: column; gap: 4px; }
+        .data-label { font-size: 0.72em; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: 0; }
+        .data-label i { margin-right: 6px; font-size: 1.1em; color: var(--text); opacity: 0.6; }
+        .data-val { font-weight: 700; color: var(--text); font-size: 1.08em; word-break: break-word; }
+
+        .caja-alerta {
+            margin-top: 12px;
+            margin-bottom: 14px;
+            padding: 14px 16px;
+            background: var(--alert-bg);
+            color: var(--alert-text);
+            border-radius: var(--radius-md);
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95em;
+            border: 1px solid rgba(204,30,61,0.15);
+        }
+
+        .buttons-wrapper { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; overflow: visible; }
+
+        .btn-wiki, .btn-copiar {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 28px;
+            font-weight: 900;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+            display: inline-block;
+            text-decoration: none;
+        }
+        .btn-copiar { background: var(--hh-red); color: white; border: none; }
+        .btn-copiar:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 20px 38px rgba(204,30,61,0.35); }
+        .btn-wiki { background: var(--hh-yellow); color: var(--hh-black); border: 2px solid var(--hh-black); }
+        .btn-wiki:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 20px 38px rgba(255,234,0,0.35); }
+        .btn-wiki:active, .btn-copiar:active { transform: scale(0.96); }
+
+        .copy-menu-wrap { position: relative; width: 100%; }
+        .copy-choice-popover {
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 12px);
+            z-index: 40;
+            width: min(330px, calc(100vw - 64px));
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text);
+            box-shadow: var(--shadow-lift);
+            transform: translateX(-50%);
+            animation: copyBubbleIn 0.18s ease-out;
+        }
+        .copy-choice-popover[hidden] { display: none; }
+        .copy-choice-popover::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: -7px;
+            width: 12px;
+            height: 12px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            transform: translateX(-50%) rotate(45deg);
+        }
+        .copy-choice-title { margin: 0 0 10px; font-size: 0.84rem; font-weight: 700; text-align: center; }
+        .copy-choice-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .copy-choice-options.single { grid-template-columns: 1fr; }
+        .copy-choice-option {
+            min-height: 42px;
+            padding: 9px 10px;
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            background: var(--input-bg);
+            color: var(--text);
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+        .copy-choice-option:hover:not(:disabled) { border-color: var(--hh-red); color: var(--hh-red); }
+        .copy-choice-option:disabled { cursor: not-allowed; opacity: 0.42; }
+        @keyframes copyBubbleIn {
+            from { opacity: 0; transform: translate(-50%, 6px) scale(0.98); }
+            to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+        }
+
+        #loadingSpinner {
+            display: none;
+            position: absolute;
+            top: 28px; right: 28px;
+            font-size: 1.4em;
+            color: var(--text);
+            animation: iosSpin 1.2s linear infinite;
+        }
+        @keyframes iosSpin { 100% { transform: rotate(360deg); } }
+
+        .sugerencias {
+            display: none;
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 0; right: 0;
+            z-index: 9999;
+            background: var(--card-bg);
+            border-radius: 28px;
+            box-shadow: var(--shadow-lift);
+            backdrop-filter: blur(24px);
+            overflow: hidden;
+            max-height: 340px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+        .sugerencia-item { padding: 16px 22px; cursor: pointer; font-weight: 700; transition: background 0.25s ease; }
+        .sugerencia-item:hover { background: rgba(255,234,0,0.18); }
+        .sugerencia-sub { display: block; margin-top: 4px; font-size: 0.82em; font-weight: 600; opacity: 0.7; }
+
+        .toast {
+            background: rgba(0,0,0,0.88);
+            color: var(--hh-yellow);
+            padding: 14px 26px;
+            border-radius: 999px;
+            font-weight: 900;
+            box-shadow: 0 16px 32px rgba(0,0,0,0.3);
+            animation: iosToast 2.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        [data-theme="dark"] .toast { background: var(--hh-yellow); color: #000; }
+        @keyframes iosToast {
+            0%   { transform: translateY(80px) scale(0.7); opacity: 0; }
+            15%  { transform: translateY(0) scale(1.05); opacity: 1; }
+            85%  { transform: translateY(0) scale(1); }
+            100% { transform: translateY(40px) scale(0.9); opacity: 0; }
+        }
+
+        .empty-state {
+            background: var(--card-bg);
+            border-radius: 28px;
+            padding: 32px 24px;
+            text-align: center;
+            font-weight: 800;
+            box-shadow: var(--shadow-soft);
+            color: var(--alert-text);
+        }
+
+        /* ── Help widget ── */
+        .help-widget { position: fixed; right: 18px; bottom: 18px; z-index: 10000; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+        .help-btn { width: 54px; height: 54px; border-radius: 50%; border: none; cursor: pointer; display: grid; place-items: center; font-size: 1.3rem; font-weight: 900; background: linear-gradient(180deg, var(--hh-yellow), #ffe600); color: #000; box-shadow: 0 14px 30px rgba(0,0,0,0.22); transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        .help-btn:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 20px 38px rgba(0,0,0,0.28); }
+        .help-btn:active { transform: scale(0.95); }
+        .help-panel { width: min(320px, calc(100vw - 36px)); background: var(--card-bg); color: var(--text); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow-lift); backdrop-filter: blur(24px); padding: 16px 16px 14px; transform-origin: bottom right; transform: translateY(12px) scale(0.95); opacity: 0; pointer-events: none; transition: all 0.22s ease; }
+        .help-widget.open .help-panel { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+        .help-title { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1rem; margin-bottom: 8px; color: var(--header-text); }
+        .help-text { margin: 0; line-height: 1.45; font-size: 0.95rem; font-weight: 600; opacity: 0.92; }
+        .help-email { display: inline-block; margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255,234,0,0.18); font-weight: 800; word-break: break-word; }
+        .help-close { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border: none; border-radius: 50%; cursor: pointer; background: transparent; color: var(--text); opacity: 0.65; transition: opacity 0.2s ease, transform 0.2s ease; }
+        .help-close:hover { opacity: 1; transform: scale(1.08); }
+        .help-panel::before { content: ""; position: absolute; right: 18px; bottom: -8px; width: 16px; height: 16px; background: var(--card-bg); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); transform: rotate(45deg); }
+
+        /* ── Modalidad Presencial / Online ── */
+        .mode-switcher-wrap {
+            width: 100%;
+            max-width: 1320px;
+            display: flex;
+            justify-content: center;
+            margin: -8px 0 28px;
+        }
+        .mode-switcher {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            width: min(430px, 100%);
+            padding: 5px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: var(--shadow-soft);
+        }
+        .mode-tab {
+            min-height: 48px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.92rem;
+            font-weight: 900;
+            letter-spacing: 0;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+        .mode-tab i { margin-right: 8px; }
+        .mode-tab.active { background: #000; color: var(--hh-yellow); }
+        [data-theme="dark"] .mode-tab.active { background: var(--hh-yellow); color: #000; }
+        .mode-tab:active { transform: scale(0.98); }
+        .view-section { width: 100%; max-width: 1320px; }
+        .view-section[hidden] { display: none; }
+
+        .online-layout {
+            width: 100%;
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .online-controls {
+            width: 360px;
+            min-width: 300px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 24px;
+        }
+        .online-results { flex: 1; min-width: 0; }
+        #onlineQuote { display: flex; flex-direction: column; gap: 20px; }
+        .online-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0 0 24px;
+            font-size: 1.18rem;
+            font-weight: 900;
+        }
+        .online-title i { color: var(--hh-red); }
+        .online-license-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 22px;
+        }
+        .online-promotion-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 22px;
+        }
+        .online-license-btn, .online-promotion-btn {
+            min-width: 0;
+            min-height: 44px;
+            padding: 8px 5px;
+            border: 2px solid var(--input-border);
+            border-radius: 7px;
+            background: var(--input-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+        .online-license-btn.active, .online-promotion-btn.active {
+            border-color: #000;
+            background: #000;
+            color: #fff;
+        }
+        [data-theme="dark"] .online-license-btn.active,
+        [data-theme="dark"] .online-promotion-btn.active {
+            border-color: var(--hh-yellow);
+            color: var(--hh-yellow);
+        }
+        .online-select {
+            width: 100%;
+            min-height: 52px;
+            padding: 12px 42px 12px 14px;
+            margin: 0 0 22px;
+            border: 2px solid var(--input-border);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 1rem;
+            font-weight: 800;
+        }
+        .online-limit-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: -4px;
+            padding: 12px 0 0;
+            border-top: 1px solid var(--border);
+        }
+        .online-limit-row span { font-size: 0.84rem; font-weight: 800; opacity: 0.68; }
+        .online-limit-row strong { color: var(--hh-red); opacity: 1; }
+        .online-manage-btn {
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: var(--input-bg);
+            color: var(--text);
+            cursor: pointer;
+        }
+        .online-quote {
+            position: relative;
+            overflow: hidden;
+            padding: 30px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+        .online-quote::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 6px;
+            background: var(--hh-green);
+        }
+        .online-quote.plus::before { background: var(--hh-blue); }
+        .online-quote.elite::before { background: #7650c8; }
+        .online-quote-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+        .online-quote-name { margin: 0; font-size: 1.45rem; font-weight: 900; }
+        .online-quote-term { margin-top: 5px; font-weight: 800; opacity: 0.58; }
+        .online-discount-badge {
+            flex: 0 0 auto;
+            padding: 8px 12px;
+            border-radius: 7px;
+            background: #000;
+            color: var(--hh-yellow);
+            font-size: 0.85rem;
+            font-weight: 900;
+        }
+        [data-theme="dark"] .online-discount-badge { background: var(--hh-yellow); color: #000; }
+        .online-main-percent { position: relative; margin-bottom: 22px; }
+        .online-main-percent input {
+            width: 100%;
+            height: 48px;
+            margin: 0;
+            padding: 8px 38px 8px 12px;
+            border: 2px solid var(--input-border);
+            border-radius: 8px;
+            outline: none;
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 1.15rem;
+            font-weight: 900;
+        }
+        .online-main-percent input:focus { border-color: var(--hh-yellow); box-shadow: 0 0 0 4px rgba(255,234,0,0.2); }
+        .online-main-percent input:disabled { opacity: 0.55; cursor: not-allowed; }
+        .online-main-percent span {
+            position: absolute;
+            right: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 900;
+            opacity: 0.55;
+            pointer-events: none;
+        }
+        .online-price-label {
+            font-size: 0.75rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            opacity: 0.55;
+        }
+        .online-price-main {
+            margin: 6px 0 5px;
+            font-size: 3.2rem;
+            line-height: 1.05;
+            font-weight: 900;
+            word-break: break-word;
+        }
+        .online-applied-discount { margin-bottom: 24px; color: var(--hh-red); font-weight: 900; }
+        .online-price-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            border-top: 1px solid var(--border);
+            border-left: 1px solid var(--border);
+            margin-bottom: 26px;
+        }
+        .online-price-item {
+            min-width: 0;
+            padding: 18px;
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .online-price-item span { display: block; font-size: 0.75rem; font-weight: 800; opacity: 0.55; }
+        .online-price-item strong { display: block; margin-top: 6px; font-size: 1.05rem; word-break: break-word; }
+        .online-copy-btn {
+            width: 100%;
+            min-height: 54px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--hh-red);
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.96rem;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+        .online-copy-btn:hover { filter: brightness(1.06); }
+        body.online-active .help-widget {
+            position: relative;
+            right: auto;
+            bottom: auto;
+            align-self: flex-end;
+            margin-top: 18px;
+        }
+        body.online-active .help-panel { position: absolute; right: 0; bottom: 66px; }
+
+        /* ── Responsive ── */
+        @media (max-width: 960px) {
+            .layout-wrapper { flex-direction: column; gap: 0; }
+            .left-panel { width: 100%; min-width: unset; position: relative; top: 0; }
+            #resultado { margin-top: 0; }
+            .online-layout { flex-direction: column; gap: 0; }
+            .online-controls { width: 100%; min-width: unset; position: relative; top: 0; }
+            .online-results { width: 100%; }
+        }
+        @media (max-width: 768px) {
+            body { padding: 16px 12px; }
+            .seccion { padding: 20px 16px; }
+            .result-card { padding: 20px 16px; }
+            .program-picker { grid-template-columns: 1fr; gap: 8px; }
+            .copy-choice-popover { width: min(300px, calc(100vw - 48px)); }
+            .help-widget { position: relative; right: auto; bottom: auto; align-self: flex-end; margin-top: 18px; }
+            .help-panel { position: absolute; right: 0; bottom: 66px; width: min(300px, calc(100vw - 24px)); }
+            .mode-switcher-wrap { margin-bottom: 20px; }
+            .online-quote { padding: 24px 20px 20px 24px; }
+            .online-price-grid { grid-template-columns: 1fr; }
+            .online-price-main { font-size: 2rem; }
+        }
+
+
+        /* ── Admin oculto: no modifica la vista pública porque permanece invisible ── */
+        .admin-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 20000;
+            background: rgba(0,0,0,0.62);
+            backdrop-filter: blur(18px);
+            display: none;
+            padding: 18px;
+        }
+        .admin-overlay.visible {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .admin-shell {
+            width: min(1280px, 100%);
+            height: min(880px, 96vh);
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lift);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .admin-overlay.maximized { padding: 0; }
+        .admin-overlay.maximized .admin-shell,
+        .admin-shell:fullscreen,
+        .admin-shell:-webkit-full-screen {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            border: 0;
+            border-radius: 0;
+        }
+        .admin-shell-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--card-bg);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0;
+        }
+        .admin-shell-actions { display: flex; align-items: center; gap: 8px; }
+        .admin-close-btn,
+        .admin-fullscreen-btn {
+            border: none;
+            border-radius: 6px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: 900;
+        }
+        .admin-fullscreen-btn {
+            background: var(--info-box);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .admin-close-btn {
+            background: var(--hh-red);
+            color: white;
+            box-shadow: 0 10px 24px rgba(204,30,61,0.28);
+        }
+        .admin-frame {
+            width: 100%;
+            flex: 1;
+            border: 0;
+            background: var(--hh-yellow);
+        }
+        .admin-hidden { display: none !important; }
+        .admin-login-gate {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--hh-yellow);
+            padding: 28px;
+        }
+        .admin-login-card {
+            width: min(520px, 100%);
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 30px;
+            text-align: center;
+        }
+        .admin-login-card h2 {
+            margin: 0 0 10px;
+            font-size: 1.35rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+        .admin-login-card p {
+            margin: 0 0 18px;
+            font-weight: 800;
+            opacity: .72;
+            line-height: 1.45;
+        }
+        .admin-login-msg {
+            margin-top: 16px;
+            font-weight: 900;
+        }
+        body.admin-open { overflow: hidden; }
+    </style>
+</head>
+<body data-theme="light">
+<div class="wave-bg"></div>
+
+<!-- ══ HEADER ══ -->
+<div class="header">
+    <div class="logo-section">
+        <div class="header-title"><h1 id="logoHH">Harmon <span>Hall</span></h1></div>
+    </div>
+    <div class="dark-mode-toggle" onclick="toggleDarkMode()">
+        <i id="darkModeIcon" class="fas fa-moon"></i>
+        <span>Noche</span>
+    </div>
+</div>
+
+<div class="mode-switcher-wrap">
+    <div class="mode-switcher" role="tablist" aria-label="Modalidad">
+        <button id="tabPresencial" class="mode-tab active" type="button" role="tab" aria-selected="true" aria-controls="presencialView" onclick="cambiarModalidad('presencial')">
+            <i class="fas fa-school"></i> Presencial
+        </button>
+        <button id="tabOnline" class="mode-tab" type="button" role="tab" aria-selected="false" aria-controls="onlineView" onclick="cambiarModalidad('online')">
+            <i class="fas fa-laptop"></i> 100% Online
+        </button>
+    </div>
+</div>
+
+<section id="presencialView" class="view-section" role="tabpanel" aria-labelledby="tabPresencial">
+<!-- ══ TWO-COLUMN LAYOUT ══ -->
+<div class="layout-wrapper">
+
+    <!-- ── LEFT: sticky search panel ── -->
+    <div class="left-panel">
+        <div class="seccion" style="text-align:center; padding:18px 24px; position:relative;">
+            <i id="loadingSpinner" class="fas fa-spinner"></i>
+            <span id="statusCarga">Conectando base de datos… ⏳</span>
+        </div>
+
+        <div class="seccion" style="position:relative; z-index:100;">
+            <label>Buscador de Institutos</label>
+            <div class="busqueda-wrap">
+                <input type="text" id="textoBusqueda" placeholder="Ej: Citadel..." autocomplete="off" onfocus="this.select()">
+                <button id="btnLimpiar" class="btn-limpiar" onclick="limpiarBusqueda()" aria-label="Limpiar búsqueda">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div id="sugerencias" class="sugerencias"></div>
+            </div>
+            <button class="btn-buscar" onclick="buscarInstituto()">Buscar Ahora</button>
+        </div>
+    </div>
+
+    <!-- ── RIGHT: results panel ── -->
+    <div class="right-panel">
+        <p class="results-label"><i class="fas fa-list-ul"></i> Resultados de búsqueda</p>
+        <div id="resultado">
+            <div class="right-empty-state">
+                <i class="fas fa-magnifying-glass"></i>
+                <p>Busca un instituto para ver<br>los resultados aquí</p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /layout-wrapper -->
+</section>
+
+<section id="onlineView" class="view-section" role="tabpanel" aria-labelledby="tabOnline" hidden>
+    <div class="online-layout">
+        <div class="online-controls">
+            <div class="seccion">
+                <h2 class="online-title"><i class="fas fa-wifi"></i> Cotizador 100% Online</h2>
+
+                <label>Licencia</label>
+                <div id="onlineLicenseTabs" class="online-license-tabs" role="group" aria-label="Licencia Online">
+                    <button class="online-license-btn active" type="button" data-license="Standard">Standard</button>
+                    <button class="online-license-btn" type="button" data-license="Plus">Plus</button>
+                    <button class="online-license-btn" type="button" data-license="Elite">Elite</button>
+                </div>
+
+                <label for="onlineTermSelect">Plazo</label>
+                <select id="onlineTermSelect" class="online-select"></select>
+
+                <label>Promoción</label>
+                <div id="onlinePromotionTabs" class="online-promotion-tabs" role="group" aria-label="Tipo de promoción">
+                    <button class="online-promotion-btn active" type="button" data-promotion="descuento">Descuento</button>
+                    <button class="online-promotion-btn" type="button" data-promotion="pagoHoy">Pago hoy</button>
+                </div>
+
+                <label for="onlineDiscountInput">Porcentaje</label>
+                <div class="online-main-percent">
+                    <input id="onlineDiscountInput" type="number" min="0" max="0" step="1" inputmode="numeric" value="0">
+                    <span>%</span>
+                </div>
+
+                <div class="online-limit-row">
+                    <span>Tope autorizado: <strong id="onlineMaxDiscountLabel">0%</strong></span>
+                    <button class="online-manage-btn" type="button" onclick="abrirAdministrador()" title="Administrar tope de descuento" aria-label="Administrar tope de descuento">
+                        <i class="fas fa-gear"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="online-results">
+            <p class="results-label"><i class="fas fa-receipt"></i> Cotización Online</p>
+            <div id="onlineQuote"></div>
+        </div>
+    </div>
+</section>
+
+
+
+<!-- ══ ADMIN OCULTO: se abre con 5 clics rápidos en el logo ══ -->
+<div class="admin-overlay" id="adminOverlay" aria-hidden="true">
+    <div class="admin-shell" role="dialog" aria-label="Panel administrador Harmon Hall">
+        <div class="admin-shell-header">
+            <span><i class="fas fa-user-shield"></i> Modo administrador</span>
+            <div class="admin-shell-actions">
+                <button class="admin-fullscreen-btn" id="adminFullscreenBtn" type="button" onclick="toggleAdminFullscreen()" title="Usar pantalla completa">
+                    <i class="fas fa-expand" id="adminFullscreenIcon"></i> <span id="adminFullscreenLabel">Pantalla grande</span>
+                </button>
+                <button class="admin-close-btn" type="button" onclick="cerrarAdministrador()">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+        <div id="adminLoginGate" class="admin-login-gate">
+            <div class="admin-login-card">
+                <h2><i class="fas fa-user-shield"></i> Acceso administrador</h2>
+                <p>Inicia sesión con el correo autorizado en la pestaña <b>UsuariosAdmin</b>.</p>
+                <div id="adminGoogleBtn"></div>
+                <div id="adminLoginMsg" class="admin-login-msg"></div>
+            </div>
+        </div>
+        <iframe id="adminFrame" class="admin-frame admin-hidden" title="Administrador Harmon Hall" src="about:blank" loading="lazy" allow="fullscreen" allowfullscreen></iframe>
+    </div>
+</div>
+
+<!-- ══ HELP WIDGET ══ -->
+<div class="help-widget" id="helpWidget" aria-live="polite">
+    <div class="help-panel" id="helpPanel" role="dialog" aria-label="Ayuda y contacto">
+        <button class="help-close" type="button" onclick="toggleHelp(false)" aria-label="Cerrar ayuda">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="help-title">
+            <i class="fas fa-circle-question"></i>
+            <span>Dudas o sugerencias</span>
+        </div>
+        <p class="help-text">
+            Si detectas algo que se pueda mejorar o tienes alguna duda, contáctame por Teams.
+        </p>
+        <div class="help-email">
+            <i class="fab fa-microsoft"></i> abraham.quintero@unid.mx
+        </div>
+    </div>
+    <button class="help-btn" type="button" onclick="toggleHelp()" aria-label="Abrir ayuda">?</button>
+</div>
+
+<script>
+    let todosLosDatos = [];
+    let baseCargada = false;
+    /*
+     * Google Sheets reemplaza a database.xlsx.
+     * database2.xlsx se queda en GitHub y se sigue cargando igual.
+     * Pega aquí la URL /exec de tu Apps Script cuando lo publiques.
+     */
+    const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyt8Ih68SxEBbKXmL1QTv8wp6pB4gg4fFMUMO5ug2FjlRg10xW91nXXgbUO8SyyyHRM/exec";
+const GOOGLE_CLIENT_ID = "1004564895555-e1ju8lud4fa6ppms895rahbef764k9pm.apps.googleusercontent.com";
+    const archivosA_Cargar = ['database2.xlsx'];
+    const EASTER_EGG_CLICKS = 3;
+    const ADMIN_TRIGGER_CLICKS = 5;
+    const ONLINE_PLANS = [
+        { id: "standard-mensual", licencia: "Standard", plazo: "Mensual", precioLista: 1700, diferido: false, topeDescuento: 0, topePagoHoy: 0 },
+        { id: "standard-trimestral", licencia: "Standard", plazo: "Trimestral", precioLista: 4999, diferido: false, topeDescuento: 0, topePagoHoy: 10 },
+        { id: "standard-semestral", licencia: "Standard", plazo: "Semestral", precioLista: 8499, diferido: true, topeDescuento: 0, topePagoHoy: 10 },
+        { id: "standard-anual", licencia: "Standard", plazo: "Anual", precioLista: 14899, diferido: true, topeDescuento: 10, topePagoHoy: 20 },
+        { id: "standard-18", licencia: "Standard", plazo: "18 Meses", precioLista: 19200, diferido: true, topeDescuento: 10, topePagoHoy: 20 },
+        { id: "plus-trimestral", licencia: "Plus", plazo: "Trimestral", precioLista: 9729, diferido: true, topeDescuento: 10, topePagoHoy: 20 },
+        { id: "plus-semestral", licencia: "Plus", plazo: "Semestral", precioLista: 16538, diferido: true, topeDescuento: 10, topePagoHoy: 20 },
+        { id: "plus-anual", licencia: "Plus", plazo: "Anual", precioLista: 24944, diferido: true, topeDescuento: 20, topePagoHoy: 30 },
+        { id: "plus-18", licencia: "Plus", plazo: "18 Meses", precioLista: 33738, diferido: true, topeDescuento: 20, topePagoHoy: 30 },
+        { id: "elite-trimestral", licencia: "Elite", plazo: "Trimestral", precioLista: 14593, diferido: true, topeDescuento: 20, topePagoHoy: 30 },
+        { id: "elite-semestral", licencia: "Elite", plazo: "Semestral", precioLista: 24807, diferido: true, topeDescuento: 20, topePagoHoy: 30 },
+        { id: "elite-anual", licencia: "Elite", plazo: "Anual", precioLista: 39692, diferido: true, topeDescuento: 30, topePagoHoy: 40 },
+        { id: "elite-18", licencia: "Elite", plazo: "18 Meses", precioLista: 50607, diferido: true, topeDescuento: 30, topePagoHoy: 40 }
+    ];
+    const ONLINE_LICENSE_META = {
+        Standard: { icono: "🟢", clase: "standard" },
+        Plus: { icono: "🔵", clase: "plus" },
+        Elite: { icono: "🟣", clase: "elite" }
+    };
+    const ONLINE_FEATURES = {
+        Standard: [
+            "✅ Clases grupales en vivo con teacher",
+            "✅ Plataforma disponible 24/7",
+            "✅ Clubes de conversación",
+            "✅ Metodología Cambridge",
+            "✅ Ruta completa desde nivel básico hasta C2"
+        ],
+        Plus: [
+            "✅ Todo lo de Standard",
+            "✅ 3 clases privadas al mes con teacher.",
+            "✅ Mayor seguimiento y práctica de conversación"
+        ],
+        Elite: [
+            "✅ Todo lo de Plus",
+            "✅ 6 clases privadas al mes con teacher",
+            "✅ Acompañamiento más personalizado"
+        ]
+    };
+    let adminCredential = "";
+    let adminGoogleButtonRendered = false;
+    let onlineLicense = "Standard";
+    let onlinePromotion = "descuento";
+    let onlineLimits = ONLINE_PLANS.reduce((limits, plan) => {
+        limits[plan.id] = { descuento: plan.topeDescuento, pagoHoy: plan.topePagoHoy };
+        return limits;
+    }, {});
+    let onlineDiscounts = {};
+    let indiceInstitutos = [];
+    let indiceInstitutosOrdenados = [];
+    let resultadosActuales = [];
+    let onlineQuoteDom = null;
+    let toastContainer = null;
+
+    const camposNormalizados = new WeakMap();
+    const ONLINE_PLAN_BY_ID = new Map(ONLINE_PLANS.map(plan => [plan.id, plan]));
+    const ONLINE_PLANS_BY_LICENSE = ONLINE_PLANS.reduce((map, plan) => {
+        if (!map.has(plan.licencia)) map.set(plan.licencia, []);
+        map.get(plan.licencia).push(plan);
+        return map;
+    }, new Map());
+    const dom = {
+        body: document.body,
+        presencialView: document.getElementById("presencialView"),
+        onlineView: document.getElementById("onlineView"),
+        tabPresencial: document.getElementById("tabPresencial"),
+        tabOnline: document.getElementById("tabOnline"),
+        onlineLicenseTabs: document.getElementById("onlineLicenseTabs"),
+        onlineLicenseButtons: Array.from(document.querySelectorAll(".online-license-btn")),
+        onlineTermSelect: document.getElementById("onlineTermSelect"),
+        onlinePromotionTabs: document.getElementById("onlinePromotionTabs"),
+        onlinePromotionButtons: Array.from(document.querySelectorAll(".online-promotion-btn")),
+        onlineDiscountInput: document.getElementById("onlineDiscountInput"),
+        onlineMaxDiscountLabel: document.getElementById("onlineMaxDiscountLabel"),
+        onlineQuote: document.getElementById("onlineQuote"),
+        textoBusqueda: document.getElementById("textoBusqueda"),
+        sugerencias: document.getElementById("sugerencias"),
+        btnLimpiar: document.getElementById("btnLimpiar"),
+        resultado: document.getElementById("resultado"),
+        busquedaWrap: document.querySelector(".busqueda-wrap"),
+        darkModeIcon: document.getElementById("darkModeIcon"),
+        darkModeLabel: document.querySelector(".dark-mode-toggle span"),
+        helpWidget: document.getElementById("helpWidget"),
+        logoHH: document.getElementById("logoHH"),
+        loadingSpinner: document.getElementById("loadingSpinner"),
+        statusCarga: document.getElementById("statusCarga"),
+        adminOverlay: document.getElementById("adminOverlay"),
+        adminShell: document.querySelector(".admin-shell"),
+        adminLoginGate: document.getElementById("adminLoginGate"),
+        adminFrame: document.getElementById("adminFrame"),
+        adminGoogleBtn: document.getElementById("adminGoogleBtn"),
+        adminLoginMsg: document.getElementById("adminLoginMsg"),
+        adminFullscreenBtn: document.getElementById("adminFullscreenBtn"),
+        adminFullscreenIcon: document.getElementById("adminFullscreenIcon"),
+        adminFullscreenLabel: document.getElementById("adminFullscreenLabel")
+    };
+
+    function normalizarTexto(texto) {
+        return (texto ?? "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    }
+    function crearDebounce(fn, espera) {
+        let temporizador = null;
+        const debounced = (...args) => {
+            clearTimeout(temporizador);
+            temporizador = setTimeout(() => fn(...args), espera);
+        };
+        debounced.cancelar = () => {
+            clearTimeout(temporizador);
+            temporizador = null;
+        };
+        return debounced;
+    }
+    function reemplazarContenido(contenedor, html) {
+        const plantilla = document.createElement("template");
+        plantilla.innerHTML = html;
+        contenedor.replaceChildren(plantilla.content);
+    }
+    function escaparHTML(texto) {
+        return (texto ?? "").toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+    function normalizarNumero(valor) {
+        if (typeof valor === "number") return valor;
+        const limpio = (valor ?? "").toString().replace(/[$,\s]/g, "").trim();
+        const numero = parseFloat(limpio);
+        return Number.isFinite(numero) ? numero : 0;
+    }
+    function formatearMoneda(valor) {
+        const numero = normalizarNumero(valor) || 0;
+        return "$" + numero.toLocaleString("es-MX", { maximumFractionDigits: 0 });
+    }
+    function formatearMonedaResumen(valor) {
+        const numero = normalizarNumero(valor) || 0;
+        return "$" + numero.toLocaleString("es-MX", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + " MXN";
+    }
+    function formatearMonedaPlantilla(valor) {
+        const numero = normalizarNumero(valor) || 0;
+        const tieneDecimales = !Number.isInteger(numero);
+        return "$" + numero.toLocaleString("es-MX", {
+            minimumFractionDigits: tieneDecimales ? 2 : 0,
+            maximumFractionDigits: 2
+        }) + " MXN";
+    }
+
+    function cambiarModalidad(modalidad) {
+        const esOnline = modalidad === "online";
+        dom.body.classList.toggle("online-active", esOnline);
+        dom.presencialView.hidden = esOnline;
+        dom.onlineView.hidden = !esOnline;
+        dom.tabPresencial.classList.toggle("active", !esOnline);
+        dom.tabOnline.classList.toggle("active", esOnline);
+        dom.tabPresencial.setAttribute("aria-selected", String(!esOnline));
+        dom.tabOnline.setAttribute("aria-selected", String(esOnline));
+
+        if (esOnline) renderizarCotizadorOnline();
+    }
+
+    function seleccionarLicenciaOnline(licencia) {
+        if (!ONLINE_PLANS_BY_LICENSE.has(licencia)) return;
+
+        const planAnterior = ONLINE_PLAN_BY_ID.get(dom.onlineTermSelect.value);
+        const plazoPreferido = planAnterior && planAnterior.plazo;
+        onlineLicense = licencia;
+
+        dom.onlineLicenseButtons.forEach(btn => {
+            btn.classList.toggle("active", btn.getAttribute("data-license") === licencia);
+        });
+
+        actualizarPlazosOnline(plazoPreferido);
+    }
+
+    function actualizarPlazosOnline(plazoPreferido) {
+        const planes = ONLINE_PLANS_BY_LICENSE.get(onlineLicense) || [];
+        reemplazarContenido(dom.onlineTermSelect, planes
+            .map(plan => `<option value="${escaparHTML(plan.id)}">${escaparHTML(plan.plazo)}</option>`)
+            .join(""));
+
+        const planPreferido = planes.find(plan => plan.plazo === plazoPreferido);
+        if (planPreferido) dom.onlineTermSelect.value = planPreferido.id;
+        renderizarCotizadorOnline();
+    }
+
+    function seleccionarPromocionOnline(promocion) {
+        if (!["descuento", "pagoHoy"].includes(promocion)) return;
+        onlinePromotion = promocion;
+        dom.onlinePromotionButtons.forEach(btn => {
+            btn.classList.toggle("active", btn.getAttribute("data-promotion") === promocion);
+        });
+        renderizarCotizadorOnline();
+    }
+
+    function obtenerPlanOnlineSeleccionado() {
+        return ONLINE_PLAN_BY_ID.get(dom.onlineTermSelect.value)
+            || (ONLINE_PLANS_BY_LICENSE.get(onlineLicense) || [])[0]
+            || ONLINE_PLANS[0];
+    }
+
+    function obtenerTopeOnline(plan) {
+        const limits = onlineLimits[plan.id] || { descuento: plan.topeDescuento, pagoHoy: plan.topePagoHoy };
+        const valor = Number(limits[onlinePromotion]);
+        return Number.isFinite(valor) ? Math.max(0, Math.min(100, Math.floor(valor))) : 0;
+    }
+
+    function obtenerDescuentoOnline(plan) {
+        const tope = obtenerTopeOnline(plan);
+        const clave = plan.id + "::" + onlinePromotion;
+        const valor = Number(onlineDiscounts[clave]);
+        return Number.isFinite(valor)
+            ? Math.max(0, Math.min(tope, Math.floor(valor)))
+            : 0;
+    }
+
+    function calcularPlanOnline(plan) {
+        const descuento = obtenerDescuentoOnline(plan);
+        const ahorro = plan.precioLista * descuento / 100;
+        const precioFinal = plan.precioLista - ahorro;
+
+        return {
+            plan,
+            descuento,
+            ahorro,
+            precioFinal,
+            diferido3: plan.diferido ? precioFinal / 3 : null,
+            diferido6: plan.diferido ? precioFinal / 6 : null
+        };
+    }
+
+    function actualizarDescuentoOnline(input) {
+        const plan = obtenerPlanOnlineSeleccionado();
+        const tope = obtenerTopeOnline(plan);
+        const clave = plan.id + "::" + onlinePromotion;
+
+        const solicitado = Number(input.value);
+        const descuento = Number.isFinite(solicitado)
+            ? Math.max(0, Math.min(tope, Math.floor(solicitado)))
+            : 0;
+
+        onlineDiscounts[clave] = descuento;
+        if (input.value !== "" && Number(input.value) !== descuento) input.value = descuento;
+        actualizarTarjetaOnline();
+    }
+
+    function normalizarInputDescuentoOnline(input) {
+        const plan = obtenerPlanOnlineSeleccionado();
+        input.value = obtenerDescuentoOnline(plan);
+        actualizarTarjetaOnline();
+    }
+
+    function actualizarTarjetaOnline() {
+        if (!onlineQuoteDom) return;
+        const plan = obtenerPlanOnlineSeleccionado();
+        const cotizacion = calcularPlanOnline(plan);
+        onlineQuoteDom.discount.textContent = cotizacion.descuento + "% descuento";
+        onlineQuoteDom.final.textContent = formatearMonedaResumen(cotizacion.precioFinal);
+        onlineQuoteDom.list.textContent = formatearMonedaResumen(plan.precioLista);
+        onlineQuoteDom.saving.textContent = formatearMonedaResumen(cotizacion.ahorro);
+        onlineQuoteDom.deferred3.textContent = cotizacion.diferido3 === null ? "No aplica" : formatearMonedaResumen(cotizacion.diferido3);
+        onlineQuoteDom.deferred6.textContent = cotizacion.diferido6 === null ? "No aplica" : formatearMonedaResumen(cotizacion.diferido6);
+    }
+
+    function crearTarjetaOnline(plan) {
+        const cotizacion = calcularPlanOnline(plan);
+        const meta = ONLINE_LICENSE_META[plan.licencia];
+        const etiquetaPromocion = onlinePromotion === "pagoHoy" ? "Pago hoy" : "Descuento";
+
+        return `<div class="online-quote ${escaparHTML(meta.clase)}">
+            <div class="online-quote-header">
+                <div>
+                    <h2 class="online-quote-name">${meta.icono} ${escaparHTML(plan.licencia)} ${escaparHTML(plan.plazo)}</h2>
+                    <div class="online-quote-term">Precio de lista</div>
+                </div>
+                <div class="online-discount-badge">${escaparHTML(etiquetaPromocion)}</div>
+            </div>
+            <div class="online-price-label">Precio con descuento</div>
+            <div id="online-final-current" class="online-price-main">${formatearMonedaResumen(cotizacion.precioFinal)}</div>
+            <div id="online-discount-current" class="online-applied-discount">${cotizacion.descuento}% descuento</div>
+            <div class="online-price-grid">
+                <div class="online-price-item"><span>Precio de lista</span><strong id="online-list-current">${formatearMonedaResumen(plan.precioLista)}</strong></div>
+                <div class="online-price-item"><span>Ahorro</span><strong id="online-saving-current">${formatearMonedaResumen(cotizacion.ahorro)}</strong></div>
+                <div class="online-price-item"><span>Diferido 3 meses</span><strong id="online-3-current">${cotizacion.diferido3 === null ? "No aplica" : formatearMonedaResumen(cotizacion.diferido3)}</strong></div>
+                <div class="online-price-item"><span>Diferido 6 meses</span><strong id="online-6-current">${cotizacion.diferido6 === null ? "No aplica" : formatearMonedaResumen(cotizacion.diferido6)}</strong></div>
+            </div>
+            <button class="online-copy-btn" type="button" data-action="copy-online"><i class="fas fa-copy"></i> Copiar resumen Online</button>
+        </div>`;
+    }
+
+    function renderizarCotizadorOnline() {
+        const plan = obtenerPlanOnlineSeleccionado();
+        const tope = obtenerTopeOnline(plan);
+        const descuento = obtenerDescuentoOnline(plan);
+        dom.onlineDiscountInput.max = String(tope);
+        dom.onlineDiscountInput.value = String(descuento);
+        dom.onlineDiscountInput.disabled = tope === 0;
+        dom.onlineMaxDiscountLabel.textContent = tope + "%";
+
+        reemplazarContenido(dom.onlineQuote, crearTarjetaOnline(plan));
+        onlineQuoteDom = {
+            discount: dom.onlineQuote.querySelector("#online-discount-current"),
+            final: dom.onlineQuote.querySelector("#online-final-current"),
+            list: dom.onlineQuote.querySelector("#online-list-current"),
+            saving: dom.onlineQuote.querySelector("#online-saving-current"),
+            deferred3: dom.onlineQuote.querySelector("#online-3-current"),
+            deferred6: dom.onlineQuote.querySelector("#online-6-current")
+        };
+    }
+
+    function formatearPrecioOnline(valor, decimales) {
+        const numero = normalizarNumero(valor) || 0;
+        return "$" + numero.toLocaleString("es-MX", {
+            minimumFractionDigits: decimales,
+            maximumFractionDigits: decimales
+        });
+    }
+
+    function crearResumenPlanOnline(plan) {
+        const { descuento, precioFinal } = calcularPlanOnline(plan);
+        const meta = ONLINE_LICENSE_META[plan.licencia];
+        const lineas = [
+            `**${meta.icono} ${plan.licencia} ${plan.plazo}**`,
+            "",
+            `💰 Precio regular: ${formatearPrecioOnline(plan.precioLista, 0)}`
+        ];
+
+        if (obtenerTopeOnline(plan) > 0) {
+            const textoPromocion = onlinePromotion === "pagoHoy"
+                ? `🎁 Pago hoy con ${descuento}% de descuento: ${formatearPrecioOnline(precioFinal, 2)}`
+                : `🎁 Con ${descuento}% de descuento: ${formatearPrecioOnline(precioFinal, 2)}`;
+            lineas.push(textoPromocion);
+        }
+
+        lineas.push("", ...ONLINE_FEATURES[plan.licencia]);
+        return lineas.join("\n");
+    }
+
+    function copiarCotizacionOnline() {
+        copiarAlPortapapeles(crearResumenPlanOnline(obtenerPlanOnlineSeleccionado()));
+    }
+
+    function aplicarConfiguracionOnline(config) {
+        const plans = config && Array.isArray(config.plans) ? config.plans : [];
+        plans.forEach(item => {
+            if (!onlineLimits[item.id]) return;
+            const descuento = Number(item.descuento);
+            const pagoHoy = Number(item.pagoHoy);
+            onlineLimits[item.id] = {
+                descuento: Number.isFinite(descuento) ? Math.max(0, Math.min(100, Math.floor(descuento))) : onlineLimits[item.id].descuento,
+                pagoHoy: Number.isFinite(pagoHoy) ? Math.max(0, Math.min(100, Math.floor(pagoHoy))) : onlineLimits[item.id].pagoHoy
+            };
+        });
+
+        Object.keys(onlineDiscounts).forEach(clave => {
+            const [planId, promocion] = clave.split("::");
+            const limits = onlineLimits[planId];
+            if (limits && Object.prototype.hasOwnProperty.call(limits, promocion)) {
+                onlineDiscounts[clave] = Math.min(onlineDiscounts[clave], limits[promocion]);
+            }
+        });
+
+        renderizarCotizadorOnline();
+    }
+
+    function inicializarCotizadorOnline() {
+        seleccionarLicenciaOnline("Standard");
+        seleccionarPromocionOnline("descuento");
+        aplicarConfiguracionOnline({ plans: [] });
+    }
+    function esDatoVacio(valor) {
+        if (valor === null || valor === undefined) return true;
+        const texto = valor.toString().trim();
+        if (!texto) return true;
+        const normalizado = normalizarTexto(texto);
+        return ["n/a", "na", "n.d", "n/d", "s/d", "sin dato", "sin datos", "-", ".", "null", "undefined", "#n/a"].includes(normalizado);
+    }
+    function valorLimpio(valor) {
+        return esDatoVacio(valor) ? "" : valor.toString().trim();
+    }
+    function obtenerCampo(obj, nombres) {
+        if (!obj || typeof obj !== "object") return "";
+        let indice = camposNormalizados.get(obj);
+        if (!indice) {
+            indice = new Map();
+            Object.keys(obj).forEach(llave => {
+                const llaveNormalizada = normalizarTexto(llave);
+                if (!indice.has(llaveNormalizada)) indice.set(llaveNormalizada, llave);
+            });
+            camposNormalizados.set(obj, indice);
+        }
+
+        for (const nombre of nombres) {
+            const llave = indice.get(normalizarTexto(nombre));
+            if (llave) {
+                const valor = valorLimpio(obj[llave]);
+                if (valor) return valor;
+            }
+        }
+        return "";
+    }
+    function obtenerMonto(obj, nombres) {
+        const valor = obtenerCampo(obj, nombres);
+        return normalizarNumero(valor);
+    }
+
+    function obtenerDirector(obj) {
+        const directorDirecto = obtenerCampo(obj, ["Directores", "Director", "Directora"]);
+        if (directorDirecto) return directorDirecto;
+        if (!obj || typeof obj !== "object") return "";
+        const llave = Object.keys(obj).find(key => normalizarTexto(key).includes("director") && valorLimpio(obj[key]));
+        return llave ? valorLimpio(obj[llave]) : "";
+    }
+
+    function reconstruirIndiceInstitutos() {
+        indiceInstitutos = todosLosDatos
+            .map((datos, posicion) => {
+                const nombre = obtenerCampo(datos, ["Nombre"]);
+                return { datos, posicion, nombre, nombreNormalizado: normalizarTexto(nombre) };
+            })
+            .filter(item => item.nombreNormalizado);
+        indiceInstitutosOrdenados = indiceInstitutos
+            .slice()
+            .sort((a, b) => a.nombreNormalizado.localeCompare(b.nombreNormalizado));
+    }
+
+    function obtenerContactoInstituto(datos) {
+        return {
+            asesor: obtenerCampo(datos, ["Asesor"]),
+            correoAsesor: obtenerCampo(datos, ["CorreoAsesor", "Correo Asesor", "Correo_Asesor"]),
+            asesor2: obtenerCampo(datos, ["Asesor_2", "Asesor 2", "Asesor2"]),
+            correoAsesor2: obtenerCampo(datos, ["CorreoAsesor_2", "Correo Asesor 2", "Correo_Asesor_2", "CorreoAsesor2"]),
+            telefonos: obtenerCampo(datos, ["Teléfonos", "Telefonos", "TELÉFONOS", "TELEFONOS"]),
+            wpp: obtenerCampo(datos, ["WPP", "WhatsApp", "Whatsapp", "Whats App"]),
+            direccion: obtenerCampo(datos, ["Dirección", "Direccion"])
+        };
+    }
+
+    function construirAsesoresHtml(datos) {
+        const contacto = obtenerContactoInstituto(datos);
+        const asesores = [
+            { label: "Asesor", nombre: contacto.asesor, correo: contacto.correoAsesor },
+            { label: "Asesor 2", nombre: contacto.asesor2, correo: contacto.correoAsesor2 }
+        ].filter(item => item.nombre || item.correo);
+
+        if (!asesores.length) return "";
+
+        const htmlAsesores = asesores.map(item => {
+            const contenidoNombre = item.nombre ? `<span class="data-val" style="font-size: 1.05em;">${escaparHTML(item.nombre)}</span>` : "";
+            const contenidoCorreo = item.correo ? `<span class="data-label" style="margin-top: 8px;"><i class="fas fa-envelope"></i> Correo</span><span class="data-val" style="font-size: 0.95em;">${escaparHTML(item.correo)}</span>` : "";
+            const span = asesores.length === 1 ? 'style="grid-column: span 2;"' : '';
+            return `<div class="data-stack" ${span}><span class="data-label"><i class="fas fa-user-check"></i> ${escaparHTML(item.label)}</span>${contenidoNombre}${contenidoCorreo}</div>`;
+        }).join("");
+
+        return `<div class="panel-gris"><span class="data-label" style="display:block; margin-bottom:10px;"><i class="fas fa-users"></i> Asesores</span><div class="grid-2x2">${htmlAsesores}</div></div>`;
+    }
+
+    function construirContactoHtml(datos) {
+        const contacto = obtenerContactoInstituto(datos);
+        const items = [
+            contacto.telefonos ? { label: "Teléfonos", icono: "fas fa-phone", valor: contacto.telefonos, span: false } : null,
+            contacto.wpp ? { label: "WPP", icono: "fab fa-whatsapp", valor: contacto.wpp, span: false } : null,
+            contacto.direccion ? { label: "Dirección", icono: "fas fa-location-dot", valor: contacto.direccion, span: true } : null
+        ].filter(Boolean);
+
+        if (!items.length) return "";
+
+        const htmlItems = items.map(item => {
+            const span = item.span ? 'style="grid-column: span 2;"' : '';
+            return `<div class="data-stack" ${span}><span class="data-label"><i class="${item.icono}"></i> ${escaparHTML(item.label)}</span><span class="data-val" style="font-size: 1.05em;">${escaparHTML(item.valor)}</span></div>`;
+        }).join("");
+
+        return `<div class="panel-gris"><span class="data-label" style="display:block; margin-bottom:10px;"><i class="fas fa-address-book"></i> Contacto del Instituto</span><div class="grid-2x2">${htmlItems}</div></div>`;
+    }
+
+    function obtenerLineasContacto(datos) {
+        const contacto = obtenerContactoInstituto(datos);
+        return [
+            contacto.asesor ? `Asesor: ${contacto.asesor}${contacto.correoAsesor ? " / " + contacto.correoAsesor : ""}` : (contacto.correoAsesor ? `Correo asesor: ${contacto.correoAsesor}` : null),
+            contacto.asesor2 ? `Asesor 2: ${contacto.asesor2}${contacto.correoAsesor2 ? " / " + contacto.correoAsesor2 : ""}` : (contacto.correoAsesor2 ? `Correo asesor 2: ${contacto.correoAsesor2}` : null),
+            contacto.telefonos ? `Teléfonos: ${contacto.telefonos}` : null,
+            contacto.wpp ? `WPP: ${contacto.wpp}` : null,
+            contacto.direccion ? `Dirección: ${contacto.direccion}` : null
+        ].filter(Boolean);
+    }
+
+    function obtenerMaterialInfantil(datos, programa) {
+        if (programa === "teens") {
+            return obtenerMonto(datos, ["Libros_TEENS", "Libros_Teens"]) || 777;
+        }
+        return obtenerMonto(datos, [programa === "kids" ? "Libros_KIDS" : "Libros_PTEEN"]);
+    }
+
+    function obtenerCotizacion(datos, programa) {
+        const ins = obtenerMonto(datos, ["Inscripcion", "Inscripción"]);
+        const seg = obtenerMonto(datos, ["SEG"]);
+        const zona = obtenerCampo(datos, ["Zona"]) || "A";
+        let html = "", texto = "", tienePrecio = false;
+
+        if (['adults', 'pro', 'kids', 'pteen', 'teens'].includes(programa)) {
+            let mensu = 0, sab = 0, lib = 0, titulo = "";
+
+            switch (programa) {
+                case 'adults':
+                    mensu = obtenerMonto(datos, ["Adults_FF"]);
+                    sab = obtenerMonto(datos, ["Adults_SAB"]);
+                    lib = obtenerMonto(datos, ["Libros_Adults"]);
+                    titulo = "Adultos (1-20)";
+                    break;
+                case 'pro':
+                    mensu = obtenerMonto(datos, ["Adults_PRO_FF"]);
+                    lib = obtenerMonto(datos, ["Libros_Adults"]);
+                    titulo = "Adultos (21-24)";
+                    break;
+                case 'kids':
+                    mensu = obtenerMonto(datos, ["KPT_SEM"]);
+                    sab = obtenerMonto(datos, ["KPT_SAB"]);
+                    lib = obtenerMonto(datos, ["Libros_KIDS"]);
+                    titulo = "Kids";
+                    break;
+                case 'pteen':
+                    mensu = obtenerMonto(datos, ["KPT_SEM"]);
+                    sab = obtenerMonto(datos, ["KPT_SAB"]);
+                    lib = obtenerMaterialInfantil(datos, programa);
+                    titulo = "Pre-Teens";
+                    break;
+                case 'teens':
+                    mensu = obtenerMonto(datos, ["KPT_SEM"]);
+                    sab = obtenerMonto(datos, ["KPT_SAB"]);
+                    lib = obtenerMaterialInfantil(datos, programa);
+                    titulo = "Teens";
+                    break;
+            }
+
+            if (mensu > 0 || sab > 0) tienePrecio = true;
+
+            if (tienePrecio) {
+                const esInfantil = ["kids", "pteen", "teens"].includes(programa);
+                const etiquetaSemanal = esInfantil ? "Entre semana · cada 2 meses" : "Mensualidad Free Friday";
+                const etiquetaSabatina = esInfantil ? "Sabatino · cada 2 meses" : "Mensualidad Sabatina";
+                html = `<div class="panel-gris"><span class="data-label" style="display:block; margin-bottom:12px;"><i class="fas fa-tags"></i> ${escaparHTML(titulo)} | ZONA ${escaparHTML(zona)}</span><div class="grid-2x2">${ins > 0 ? `<div class="data-stack"><span class="data-label">Inscripción</span><span class="data-val">${formatearMoneda(ins)}</span></div>` : ''}${seg > 0 ? `<div class="data-stack"><span class="data-label">SEG</span><span class="data-val">${formatearMoneda(seg)}</span></div>` : ''}${lib > 0 ? `<div class="data-stack"><span class="data-label">Libro</span><span class="data-val">${formatearMoneda(lib)}</span></div>` : ''}${mensu > 0 ? `<div class="data-stack"><span class="data-label">${etiquetaSemanal}</span><span class="data-val">${formatearMoneda(mensu)}</span></div>` : ''}${sab > 0 ? `<div class="data-stack"><span class="data-label">${etiquetaSabatina}</span><span class="data-val">${formatearMoneda(sab)}</span></div>` : ''}</div></div>`;
+                texto = [
+                    `Programa: ${titulo}`,
+                    `Zona: ${zona}`,
+                    ins > 0 ? `Inscripción: ${formatearMoneda(ins)}` : null,
+                    seg > 0 ? `SEG: ${formatearMoneda(seg)}` : null,
+                    lib > 0 ? `Libro: ${formatearMoneda(lib)}` : null,
+                    mensu > 0 ? `Mensualidad Free Friday/Semanal: ${formatearMoneda(mensu)}` : null,
+                    sab > 0 ? `Mensualidad Sabatina: ${formatearMoneda(sab)}` : null
+                ].filter(Boolean).join("\n");
+            }
+        } else {
+            let titulo = "";
+            let precios = [];
+            const notaLibro = "Todo incluido (no incluye precio del libro; consultar en lo que se actualiza la información)";
+
+            switch (programa) {
+                case 'toefl': {
+                    const ff = obtenerMonto(datos, ["TOEFL_ITP_PRE"]);
+                    const sab = obtenerMonto(datos, ["TOEFL_ITP_PRE_SAB"]);
+                    titulo = "PAGO ÚNICO TOEFL ITP";
+                    if (ff > 0) precios.push({ label: "FF/SEM", valor: ff });
+                    if (sab > 0) precios.push({ label: "Sabatino", valor: sab });
+                    break;
+                }
+                case 'tkt': {
+                    const total = obtenerMonto(datos, ["TKT"]);
+                    titulo = "PAGO ÚNICO TKT";
+                    if (total > 0) precios.push({ label: "Total", valor: total });
+                    break;
+                }
+                case 'icc': {
+                    const ff = obtenerMonto(datos, ["ICC_FF"]);
+                    const sab = obtenerMonto(datos, ["ICC_SAB"]);
+                    titulo = "PAGO ÚNICO ICC";
+                    if (ff > 0) precios.push({ label: "FF/SEM", valor: ff });
+                    if (sab > 0) precios.push({ label: "Sabatino", valor: sab });
+                    break;
+                }
+            }
+
+            if (precios.length > 0) tienePrecio = true;
+
+            if (tienePrecio) {
+                const preciosHtml = precios.length === 1
+                    ? `<div style="font-size:2.2em; font-weight:900; margin:12px 0;">${formatearMoneda(precios[0].valor)}</div>`
+                    : `<div class="grid-2x2" style="margin: 16px 0; text-align:left;">${precios.map(item => `<div class="data-stack"><span class="data-label">${escaparHTML(item.label)}</span><span class="data-val">${formatearMoneda(item.valor)}</span></div>`).join("")}</div>`;
+                html = `<div class="panel-gris" style="border-left:5px solid var(--hh-yellow); text-align:center;"><span class="data-label" style="display:block; margin-bottom:8px;">${escaparHTML(titulo)}</span>${preciosHtml}<span class="data-label" style="font-size:0.75em;"><i class="fas fa-check-circle"></i> ${escaparHTML(notaLibro)}</span></div>`;
+                texto = [
+                    `Programa: ${titulo}`,
+                    ...precios.map(item => `${item.label}: ${formatearMoneda(item.valor)}`),
+                    notaLibro
+                ].join("\n");
+            }
+        }
+
+        if (!tienePrecio) {
+            html = `<div class="caja-alerta"><i class="fas fa-exclamation-triangle"></i> Precios no definidos, valida la información.</div>`;
+            texto = "Precios no definidos";
+        }
+        return { html, texto, tienePrecio };
+    }
+
+    function mostrarNotificacion(mensaje) {
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container';
+            toastContainer.style.position = 'fixed';
+            toastContainer.style.bottom = '30px';
+            toastContainer.style.left = '50%';
+            toastContainer.style.transform = 'translateX(-50%)';
+            toastContainer.style.zIndex = '9999';
+            dom.body.appendChild(toastContainer);
+        }
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `<i class="fas fa-check-circle"></i> ${escaparHTML(mensaje)}`;
+        toastContainer.appendChild(toast);
+        setTimeout(() => toast.remove(), 2800);
+    }
+
+    async function copiarAlPortapapeles(texto) {
+        try {
+            await navigator.clipboard.writeText(texto);
+            mostrarNotificacion("Resumen copiado con éxito");
+        } catch {
+            const area = document.createElement("textarea");
+            area.value = texto;
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand("copy");
+            document.body.removeChild(area);
+            mostrarNotificacion("Resumen copiado con éxito");
+        }
+    }
+
+    function toggleDarkMode() {
+        const isLight = dom.body.getAttribute('data-theme') === 'light';
+        dom.body.setAttribute('data-theme', isLight ? 'dark' : 'light');
+        dom.darkModeIcon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+        dom.darkModeLabel.innerText = isLight ? 'Día' : 'Noche';
+    }
+
+    function toggleHelp(forceState) {
+        const shouldOpen = typeof forceState === 'boolean' ? forceState : !dom.helpWidget.classList.contains('open');
+        dom.helpWidget.classList.toggle('open', shouldOpen);
+    }
+
+    function actualizarCotizacion(index, selector) {
+        const datos = resultadosActuales[index];
+        if (!datos || !selector) return;
+        cerrarMenusCopia();
+        const programa = selector.value;
+        const tarjeta = selector.closest(".result-card");
+        const contenedor = tarjeta && tarjeta.querySelector("[data-role='prices']");
+        if (!contenedor) return;
+        const cotizacion = obtenerCotizacion(datos, programa);
+        reemplazarContenido(contenedor, cotizacion.html);
+    }
+
+    function crearResumenAdultos(datos, programa, horario) {
+        const inscripcion = formatearMonedaPlantilla(obtenerMonto(datos, ["Inscripcion", "Inscripción"]));
+        const seg = formatearMonedaPlantilla(obtenerMonto(datos, ["SEG"]));
+        const material = formatearMonedaPlantilla(obtenerMonto(datos, ["Libros_Adults"]));
+
+        if (horario === "sabatino") {
+            const mensualidad = formatearMonedaPlantilla(obtenerMonto(datos, ["Adults_SAB"]));
+            return `🕒 *Horario Sabatino*
+📅 *Sábados*
+⏳ 6 horas
+💰 *Mensualidad:* ${mensualidad}
+📝 *Inscripción:* ${inscripcion} — pago único
+📚 *Material:* ${material} — cada 4 meses
+🛡️ *SEG (Seguro de Educación Garantizada):* ${seg} mensuales
+✨ Ideal si prefieres concentrar tus clases en un solo día y mantener libre el resto de tu semana.`;
+        }
+
+        const mensualidad = formatearMonedaPlantilla(obtenerMonto(datos, [
+            programa === "pro" ? "Adults_PRO_FF" : "Adults_FF"
+        ]));
+        return `🕒 *Horario Free Friday*
+📅 *Lunes a jueves*
+⏳ 1 hora 30 minutos por día
+💰 *Mensualidad:* ${mensualidad}
+📝 *Inscripción:* ${inscripcion} — pago único
+📚 *Material:* ${material} — cada 4 meses
+🛡️ *SEG (Seguro de Educación Garantizada):* ${seg} mensuales
+✨ Una opción ideal si buscas avanzar durante la semana y tener tus viernes libres.`;
+    }
+
+    function crearResumenKidsPreTeens(datos, programa, horario) {
+        const inscripcion = formatearMonedaPlantilla(obtenerMonto(datos, ["Inscripcion", "Inscripción"]));
+        const seg = formatearMonedaPlantilla(obtenerMonto(datos, ["SEG"]));
+        const material = formatearMonedaPlantilla(obtenerMaterialInfantil(datos, programa));
+
+        if (horario === "sabatino") {
+            const inversion = formatearMonedaPlantilla(obtenerMonto(datos, ["KPT_SAB"]));
+            return `🟣 *Horario Sabatino Intensivo*
+📅 *Sábados*
+⏳ 3 horas de clase
+💰 *Inversión:* ${inversion} — cada 2 meses
+📝 *Inscripción:* ${inscripcion} — pago único
+📚 *Material:* ${material} — por nivel, aproximadamente cada 8 meses
+🛡️ *SEG (Seguro de Educación Garantizada):* ${seg} mensuales`;
+        }
+
+        const inversion = formatearMonedaPlantilla(obtenerMonto(datos, ["KPT_SEM"]));
+        return `🟢 *Horario entre semana*
+📅 *2 días a la semana*
+Lunes y miércoles // Martes y jueves
+⏳ 1 hora 30 minutos por día
+💰 *Inversión:* ${inversion} — cada 2 meses
+📝 *Inscripción:* ${inscripcion} — pago único
+📚 *Material:* ${material} — por nivel, aproximadamente cada 8 meses
+🛡️ *SEG (Seguro de Educación Garantizada):* ${seg} mensuales`;
+    }
+
+    function obtenerOpcionesHorario(datos, programa) {
+        if (programa === "adults") {
+            return [
+                { id: "free-friday", etiqueta: "Free Friday", icono: "fas fa-calendar-week", disponible: obtenerMonto(datos, ["Adults_FF"]) > 0 },
+                { id: "sabatino", etiqueta: "Sabatino", icono: "fas fa-calendar-day", disponible: obtenerMonto(datos, ["Adults_SAB"]) > 0 }
+            ];
+        }
+        if (programa === "pro") {
+            return [
+                { id: "free-friday", etiqueta: "Free Friday", icono: "fas fa-calendar-week", disponible: obtenerMonto(datos, ["Adults_PRO_FF"]) > 0 }
+            ];
+        }
+        if (["kids", "pteen", "teens"].includes(programa)) {
+            return [
+                { id: "entre-semana", etiqueta: "Entre semana", icono: "fas fa-calendar-week", disponible: obtenerMonto(datos, ["KPT_SEM"]) > 0 },
+                { id: "sabatino", etiqueta: "Sabatino intensivo", icono: "fas fa-calendar-day", disponible: obtenerMonto(datos, ["KPT_SAB"]) > 0 }
+            ];
+        }
+        return [];
+    }
+
+    function cerrarMenusCopia(excepto) {
+        dom.resultado.querySelectorAll(".copy-choice-popover:not([hidden])").forEach(popover => {
+            if (popover === excepto) return;
+            popover.hidden = true;
+            const boton = popover.closest(".copy-menu-wrap")?.querySelector("[data-action='copy-summary']");
+            if (boton) boton.setAttribute("aria-expanded", "false");
+        });
+    }
+
+    function abrirMenuCopia(index, boton) {
+        const datos = resultadosActuales[index];
+        const tarjeta = boton.closest("[data-result-index]");
+        const selector = tarjeta && tarjeta.querySelector(".result-program-select");
+        const popover = tarjeta && tarjeta.querySelector(".copy-choice-popover");
+        if (!datos || !selector || !popover) return;
+
+        const tipo = normalizarTexto(obtenerCampo(datos, ["Tipo"]) || datos.Tipo || "");
+        const opciones = obtenerOpcionesHorario(datos, selector.value);
+        if (tipo.includes("franquicia") || !opciones.length) {
+            cerrarMenusCopia();
+            copiarResumen(index);
+            return;
+        }
+
+        const estabaAbierto = !popover.hidden;
+        cerrarMenusCopia();
+        if (estabaAbierto) return;
+
+        if (!opciones.some(opcion => opcion.disponible)) {
+            mostrarNotificacion("No hay precios disponibles para copiar este programa");
+            return;
+        }
+
+        reemplazarContenido(popover, `
+            <p class="copy-choice-title">¿Qué horario deseas copiar?</p>
+            <div class="copy-choice-options ${opciones.length === 1 ? "single" : ""}">
+                ${opciones.map(opcion => `<button class="copy-choice-option" type="button" role="menuitem" data-action="copy-schedule" data-schedule="${opcion.id}" ${opcion.disponible ? "" : "disabled"} title="${opcion.disponible ? opcion.etiqueta : opcion.etiqueta + " no disponible"}"><i class="${opcion.icono}"></i> ${escaparHTML(opcion.etiqueta)}${opcion.disponible ? "" : " · No disponible"}</button>`).join("")}
+            </div>`);
+        popover.hidden = false;
+        boton.setAttribute("aria-expanded", "true");
+    }
+
+    function copiarResumen(index, horario) {
+        const datos = resultadosActuales[index];
+        const tarjeta = dom.resultado.querySelector(`[data-result-index="${index}"]`);
+        const selector = tarjeta && tarjeta.querySelector(".result-program-select");
+        if (!datos || !selector) return;
+        const programa = selector.value;
+        const tipo = normalizarTexto(obtenerCampo(datos, ["Tipo"]) || datos.Tipo || "");
+
+        let labelTipo = "Propia";
+        if (tipo.includes("franquicia")) labelTipo = "Franquicia";
+        else if (tipo.includes("consolidado")) labelTipo = "Consolidado";
+
+        const cotizacion = obtenerCotizacion(datos, programa);
+        const director = obtenerDirector(datos);
+        const zona = obtenerCampo(datos, ["Zona"]);
+        const contacto = obtenerContactoInstituto(datos);
+        const lineasContacto = obtenerLineasContacto(datos);
+
+        let textoFinal = "";
+
+        if (labelTipo === "Franquicia") {
+            const tel = contacto.telefonos || obtenerCampo(datos, ["TELÉFONOS", "TELEFONOS"]);
+            const wpp = contacto.wpp;
+            const coord = contacto.asesor || obtenerCampo(datos, ["NOMBRE2", "Coordinador"]);
+            const email = contacto.correoAsesor || obtenerCampo(datos, ["EMAIL3", "EMAIL", "Correo"]);
+            const direccion = contacto.direccion;
+            const datosContactoFranquicia = [
+                tel ? `📞 Teléfono: ${tel}` : null,
+                wpp ? `💬 WPP: ${wpp}` : null,
+                coord ? `👤 Coordinador/Asesor: ${coord}${email ? ' / ' + email : ''}` : (email ? `✉️ Correo: ${email}` : null),
+                contacto.asesor2 ? `👤 Asesor 2: ${contacto.asesor2}${contacto.correoAsesor2 ? ' / ' + contacto.correoAsesor2 : ''}` : (contacto.correoAsesor2 ? `✉️ Correo asesor 2: ${contacto.correoAsesor2}` : null),
+                direccion ? `📍 Dirección: ${direccion}` : null
+            ].filter(Boolean).join("\n");
+
+            textoFinal = `Muy bien, te comento que contamos con varios institutos que no han subido información actualizada en el sistema, así que de momento no tenemos datos sobre sus cursos, horarios, grupos ni costos presenciales. Sin embargo, con gusto te comparto los datos de contacto del instituto para que puedan brindarte atención directa:
+
+${datosContactoFranquicia || "Por el momento no hay datos de contacto visibles para este instituto."}
+
+⏰ Horario de atención: de 9:00 am a 5:00 pm.
+
+Por otro lado, si te interesa estudiar inglés en modalidad 100% online, nosotros sí podemos apoyarte directamente con toda la información: costos, niveles, clases privadas, y promociones vigentes. ¿Te interesa conocer esta opción?`;
+        } else if (['adults', 'pro'].includes(programa)) {
+            if (!horario) return;
+            textoFinal = crearResumenAdultos(datos, programa, horario);
+        } else if (['kids', 'pteen', 'teens'].includes(programa)) {
+            if (!horario) return;
+            textoFinal = crearResumenKidsPreTeens(datos, programa, horario);
+        } else {
+            textoFinal = [
+                `Instituto: ${valorLimpio(datos.Nombre) || 'N/D'}`,
+                `Tipo: ${obtenerCampo(datos, ["Tipo"]) || 'Instituto'}`,
+                `Categoría: ${labelTipo}`,
+                zona ? `Zona: ${zona}` : null,
+                director ? `Director: ${director}` : null,
+                ...lineasContacto,
+                cotizacion.texto
+            ].filter(Boolean).join("\n");
+        }
+
+        copiarAlPortapapeles(textoFinal);
+    }
+
+    function limpiarBusqueda() {
+        actualizarSugerenciasDebounced.cancelar();
+        resultadosActuales = [];
+        dom.textoBusqueda.value = '';
+        dom.sugerencias.style.display = 'none';
+        dom.btnLimpiar.classList.remove('visible');
+        dom.resultado.replaceChildren();
+        dom.textoBusqueda.focus();
+    }
+
+    function renderSugerencias(lista) {
+        if (!lista.length) {
+            dom.sugerencias.replaceChildren();
+            dom.sugerencias.style.display = "none";
+            return;
+        }
+        reemplazarContenido(dom.sugerencias, lista.map(item => {
+            const nombre = item.nombre || "Sin nombre";
+            const tipo = obtenerCampo(item.datos, ["Tipo"]) || "Instituto";
+            const zona = obtenerCampo(item.datos, ["Zona"]);
+            return `<div class="sugerencia-item" data-nombre="${escaparHTML(nombre)}">${escaparHTML(nombre)}<span class="sugerencia-sub">${escaparHTML(tipo)}${zona ? " • Zona " + escaparHTML(zona) : ""}</span></div>`;
+        }).join(""));
+        dom.sugerencias.style.display = "block";
+    }
+
+    function actualizarSugerencias() {
+        const inputVal = dom.textoBusqueda.value;
+        const busqueda = normalizarTexto(inputVal);
+        if (!busqueda) {
+            dom.sugerencias.style.display = "none";
+            return;
+        }
+
+        const prefijos = [];
+        const parciales = [];
+        for (const item of indiceInstitutosOrdenados) {
+            if (!item.nombreNormalizado.includes(busqueda)) continue;
+            if (item.nombreNormalizado.startsWith(busqueda)) prefijos.push(item);
+            else if (parciales.length < 12) parciales.push(item);
+        }
+        renderSugerencias(prefijos.slice(0, 12).concat(parciales).slice(0, 12));
+    }
+
+    const actualizarSugerenciasDebounced = crearDebounce(actualizarSugerencias, 120);
+
+    function seleccionarSugerencia(nombre) {
+        actualizarSugerenciasDebounced.cancelar();
+        dom.textoBusqueda.value = nombre;
+        dom.sugerencias.style.display = "none";
+        dom.btnLimpiar.classList.add('visible');
+        buscarInstituto();
+    }
+
+    function buscarInstituto() {
+        const texto = dom.textoBusqueda.value.trim();
+        const busqueda = normalizarTexto(texto);
+        dom.sugerencias.style.display = "none";
+
+        if (!busqueda) {
+            resultadosActuales = [];
+            reemplazarContenido(dom.resultado, `<p class="empty-state">Escribe el nombre del instituto para buscar.</p>`);
+            return;
+        }
+
+        const resultados = indiceInstitutos
+            .filter(item => item.nombreNormalizado.includes(busqueda))
+            .map(item => item.datos);
+        resultadosActuales = resultados;
+        const htmlTotal = resultados.map((encontrado, index) => {
+
+            const tipo = normalizarTexto(obtenerCampo(encontrado, ["Tipo"]) || encontrado.Tipo || "");
+            const nombreInstituto = obtenerCampo(encontrado, ["Nombre"]) || "Sin nombre";
+            const zona = obtenerCampo(encontrado, ["Zona"]);
+
+            let classType = "own";
+            let labelTipo = "Propia";
+
+            if (tipo.includes("franquicia")) {
+                classType = "franchise";
+                labelTipo = "Franquicia";
+            } else if (tipo.includes("consolidado")) {
+                classType = "consolidado";
+                labelTipo = "Consolidado";
+            }
+
+            const zonaBadge = zona ? `<span class="type-badge" style="background:var(--hh-yellow); color:var(--hh-black); margin-left:8px;">ZONA ${escaparHTML(zona)}</span>` : "";
+            const director = obtenerDirector(encontrado);
+            let directorHtml = "";
+            if (director) {
+                directorHtml = `<div class="panel-gris"><span class="data-label"><i class="fas fa-user-tie"></i> Director de Instituto</span><div class="data-val" style="margin-top: 6px; font-size: 1.1em; text-transform: uppercase;">${escaparHTML(director)}</div></div>`;
+            }
+
+            let asesoresHtml = construirAsesoresHtml(encontrado);
+            let contactoHtml = construirContactoHtml(encontrado);
+            let franquiciaHtml = "";
+
+            if (classType === "franchise") {
+                const contacto = obtenerContactoInstituto(encontrado);
+                const coord = contacto.asesor || obtenerCampo(encontrado, ["NOMBRE2", "Coordinador"]);
+                const email = contacto.correoAsesor || obtenerCampo(encontrado, ["EMAIL3", "EMAIL", "Correo"]);
+                const tel = contacto.telefonos || obtenerCampo(encontrado, ["TELÉFONOS", "TELEFONOS"]);
+                const itemsFranquicia = [
+                    coord ? { label: "Coordinador/Asesor", icono: "fas fa-headset", valor: coord, span: false } : null,
+                    tel ? { label: "Teléfono", icono: "fas fa-phone", valor: tel, span: false } : null,
+                    email ? { label: "Email", icono: "fas fa-envelope", valor: email, span: false } : null,
+                    contacto.wpp ? { label: "WPP", icono: "fab fa-whatsapp", valor: contacto.wpp, span: false } : null,
+                    contacto.asesor2 ? { label: "Asesor 2", icono: "fas fa-user-check", valor: `${contacto.asesor2}${contacto.correoAsesor2 ? " / " + contacto.correoAsesor2 : ""}`, span: true } : (contacto.correoAsesor2 ? { label: "Correo Asesor 2", icono: "fas fa-envelope", valor: contacto.correoAsesor2, span: true } : null),
+                    contacto.direccion ? { label: "Dirección", icono: "fas fa-location-dot", valor: contacto.direccion, span: true } : null
+                ].filter(Boolean);
+
+                if (itemsFranquicia.length) {
+                    franquiciaHtml = `<div class="panel-gris panel-franchise"><span class="data-label" style="margin-bottom:10px; display:block;"><i class="fas fa-headset"></i> Contacto Franquicia</span><div class="grid-2x2">${itemsFranquicia.map(item => `<div class="data-stack" ${item.span ? 'style="grid-column: span 2;"' : ''}><span class="data-label"><i class="${item.icono}"></i> ${escaparHTML(item.label)}</span><span class="data-val" style="font-size: ${item.span ? '0.95em' : '1.05em'};">${escaparHTML(item.valor)}</span></div>`).join("")}</div></div>`;
+                }
+
+                asesoresHtml = "";
+                contactoHtml = "";
+            }
+
+            let enlaceHtml = "";
+            let linkUrl = obtenerCampo(encontrado, ["Wiki"]).toString().trim();
+            let tieneWiki = linkUrl && linkUrl !== "#" && linkUrl.toLowerCase() !== "n/a" && linkUrl.toLowerCase() !== "0";
+
+            if (classType !== "franchise" && tieneWiki) {
+                if (!linkUrl.startsWith('http')) linkUrl = 'https://' + linkUrl;
+                enlaceHtml = `<a href="${escaparHTML(linkUrl)}" target="_blank" rel="noopener noreferrer" class="btn-wiki">ABRIR WIKI</a>`;
+            } else if (classType !== "franchise") {
+                enlaceHtml = `<div style="text-align:center; padding:16px; background:var(--info-box); border-radius:18px; font-weight:800; color:var(--text); opacity:0.65;"><i class="fas fa-info-circle"></i> SIN WIKI DISPONIBLE</div>`;
+            }
+
+            const cotizacionInicial = obtenerCotizacion(encontrado, "adults");
+            return `<div class="result-card" data-result-index="${index}"><div class="instituto-header"><div><div class="instituto-nombre">${escaparHTML(nombreInstituto)}</div><span class="type-badge ${classType}">${labelTipo}</span>${zonaBadge}</div><i class="fas fa-school" style="font-size:1.55em;opacity:0.26; padding-top:4px;"></i></div>${directorHtml}${asesoresHtml}${contactoHtml}${franquiciaHtml}<div class="program-picker"><label class="program-picker-label"><i class="fas fa-graduation-cap"></i> Programa</label><select class="program-select result-program-select"><option value="adults">Adultos (1-20)</option><option value="pro">Adultos Pro (21-24)</option><option value="kids">Kids</option><option value="pteen">Pre-Teens</option><option value="teens">Teens</option><option value="toefl">TOEFL ITP</option><option value="tkt">TKT</option><option value="icc">ICC</option></select></div><div data-role="prices">${cotizacionInicial.html}</div><div class="buttons-wrapper"><div class="copy-menu-wrap"><button class="btn-copiar" type="button" data-action="copy-summary" aria-haspopup="menu" aria-expanded="false"><i class="fas fa-copy"></i> COPIAR RESUMEN</button><div class="copy-choice-popover" role="menu" hidden></div></div>${enlaceHtml}</div></div>`;
+        }).join("");
+
+        reemplazarContenido(dom.resultado, resultados.length
+            ? htmlTotal
+            : `<p class="empty-state">No se encontró nada para "${escaparHTML(texto)}".</p>`);
+    }
+
+
+
+    function apiGoogleSheetsConfigurada() {
+        return SHEETS_API_URL && !SHEETS_API_URL.includes("PEGA_AQUI") && /^https?:\/\//i.test(SHEETS_API_URL);
+    }
+
+    function construirUrlAppsScript(params = {}) {
+        const sep = SHEETS_API_URL.includes("?") ? "&" : "?";
+        const query = Object.entries(params)
+            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+            .join("&");
+        return SHEETS_API_URL + sep + query;
+    }
+
+    function cargarGoogleSheetsJsonp() {
+        return new Promise((resolve, reject) => {
+            if (!apiGoogleSheetsConfigurada()) {
+                resolve([]);
+                return;
+            }
+
+            const callbackName = "hhSheetsCallback_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+            const script = document.createElement("script");
+            let terminado = false;
+
+            const limpiar = () => {
+                try { delete window[callbackName]; } catch { window[callbackName] = undefined; }
+                if (script.parentNode) script.parentNode.removeChild(script);
+            };
+
+            const timeout = setTimeout(() => {
+                if (terminado) return;
+                terminado = true;
+                limpiar();
+                reject(new Error("Tiempo de espera agotado al cargar Google Sheets."));
+            }, 18000);
+
+            window[callbackName] = (respuesta) => {
+                if (terminado) return;
+                terminado = true;
+                clearTimeout(timeout);
+                limpiar();
+
+                if (!respuesta || !respuesta.ok) {
+                    reject(new Error((respuesta && respuesta.error) || "Google Sheets no respondió correctamente."));
+                    return;
+                }
+
+                const datos = Array.isArray(respuesta.data) ? respuesta.data : [];
+                resolve(datos.map(item => ({ ...item, _source: item._source || "sheets" })));
+            };
+
+            script.onerror = () => {
+                if (terminado) return;
+                terminado = true;
+                clearTimeout(timeout);
+                limpiar();
+                reject(new Error("No se pudo conectar con Apps Script."));
+            };
+
+            script.src = construirUrlAppsScript({ action: "list", callback: callbackName, _: Date.now() });
+            document.body.appendChild(script);
+        });
+    }
+
+    function cargarConfiguracionOnlineJsonp() {
+        return new Promise((resolve, reject) => {
+            if (!apiGoogleSheetsConfigurada()) {
+                resolve({ plans: [] });
+                return;
+            }
+
+            const callbackName = "hhOnlineConfigCallback_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+            const script = document.createElement("script");
+            let terminado = false;
+
+            const limpiar = () => {
+                try { delete window[callbackName]; } catch { window[callbackName] = undefined; }
+                if (script.parentNode) script.parentNode.removeChild(script);
+            };
+
+            const timeout = setTimeout(() => {
+                if (terminado) return;
+                terminado = true;
+                limpiar();
+                reject(new Error("Tiempo de espera agotado al cargar el tope Online."));
+            }, 10000);
+
+            window[callbackName] = (respuesta) => {
+                if (terminado) return;
+                terminado = true;
+                clearTimeout(timeout);
+                limpiar();
+
+                if (!respuesta || !respuesta.ok) {
+                    reject(new Error((respuesta && respuesta.error) || "No se pudo cargar el tope Online."));
+                    return;
+                }
+
+                resolve(respuesta.data || { plans: [] });
+            };
+
+            script.onerror = () => {
+                if (terminado) return;
+                terminado = true;
+                clearTimeout(timeout);
+                limpiar();
+                reject(new Error("No se pudo conectar con la configuración Online."));
+            };
+
+            script.src = construirUrlAppsScript({ action: "onlineConfig", callback: callbackName, _: Date.now() });
+            document.body.appendChild(script);
+        });
+    }
+
+    async function actualizarConfiguracionOnlineDesdeServidor() {
+        try {
+            const config = await cargarConfiguracionOnlineJsonp();
+            aplicarConfiguracionOnline(config);
+        } catch (error) {
+            console.warn("No se pudo cargar el tope Online; se usará 0%:", error);
+            aplicarConfiguracionOnline({ plans: [] });
+        }
+    }
+
+    async function cargarExcelGitHub(archivo) {
+        const response = await fetch(archivo, { cache: "default" });
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status} en ${archivo}`);
+        const arrayBuffer = await response.arrayBuffer();
+        const libro = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+        return XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]]).map(item => ({ ...item, _source: archivo }));
+    }
+
+    async function cargarBasesDeDatos(mostrarEstado = true) {
+        const errores = [];
+        const datosFinales = [];
+        const cargas = [];
+
+        if (apiGoogleSheetsConfigurada()) {
+            cargas.push({ nombre: "Google Sheets", promesa: cargarGoogleSheetsJsonp() });
+        } else {
+            errores.push("Falta configurar SHEETS_API_URL en index.html.");
+        }
+
+        archivosA_Cargar.forEach(archivo => {
+            cargas.push({ nombre: archivo, promesa: cargarExcelGitHub(archivo) });
+        });
+
+        const resultados = await Promise.allSettled(cargas.map(carga => carga.promesa));
+        resultados.forEach((resultado, index) => {
+            if (resultado.status === "fulfilled") {
+                datosFinales.push(...resultado.value);
+            } else {
+                const nombre = cargas[index].nombre;
+                console.error("Error cargando " + nombre + ":", resultado.reason);
+                errores.push((resultado.reason && resultado.reason.message) || String(resultado.reason));
+            }
+        });
+
+        todosLosDatos = datosFinales;
+        reconstruirIndiceInstitutos();
+        baseCargada = true;
+
+        if (!datosFinales.length && errores.length) {
+            throw new Error(errores.join(" | "));
+        }
+
+        return { datos: datosFinales, errores };
+    }
+
+    async function recargarDatosDesdeAdmin() {
+        try {
+            const busquedaActual = dom.textoBusqueda.value.trim();
+            await cargarBasesDeDatos(false);
+            await actualizarConfiguracionOnlineDesdeServidor();
+            if (busquedaActual) buscarInstituto();
+            mostrarNotificacion("Datos actualizados desde Google Sheets");
+        } catch (error) {
+            console.error("No se pudo refrescar después del cambio admin:", error);
+            mostrarNotificacion("Guarda realizado; recarga la página para ver cambios");
+        }
+    }
+
+    function abrirAdministrador() {
+        if (!apiGoogleSheetsConfigurada()) {
+            mostrarNotificacion("Primero configura la URL de Apps Script en index.html");
+            return;
+        }
+        dom.adminOverlay.classList.add("visible");
+        dom.adminOverlay.setAttribute("aria-hidden", "false");
+        dom.body.classList.add("admin-open");
+
+        if (adminCredential) {
+            cargarPanelAdminConSesion();
+        } else {
+            mostrarLoginAdmin();
+        }
+    }
+
+    function mostrarLoginAdmin() {
+        dom.adminLoginGate.classList.remove("admin-hidden");
+        dom.adminFrame.classList.add("admin-hidden");
+        dom.adminFrame.src = "about:blank";
+        renderizarBotonGoogleAdmin();
+    }
+
+    function renderizarBotonGoogleAdmin() {
+        if (!window.google || !google.accounts || !google.accounts.id) {
+            dom.adminLoginMsg.textContent = "Cargando inicio de sesión de Google…";
+            setTimeout(renderizarBotonGoogleAdmin, 350);
+            return;
+        }
+
+        if (adminGoogleButtonRendered) return;
+        adminGoogleButtonRendered = true;
+        dom.adminLoginMsg.textContent = "";
+
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: onAdminGoogleCredential,
+            ux_mode: "popup"
+        });
+        google.accounts.id.renderButton(dom.adminGoogleBtn, {
+            type: "standard",
+            size: "large",
+            theme: "filled_black",
+            text: "signin_with",
+            shape: "pill",
+            logo_alignment: "left"
+        });
+    }
+
+    function onAdminGoogleCredential(response) {
+        if (!response || !response.credential) {
+            dom.adminLoginMsg.textContent = "No se recibió sesión de Google.";
+            return;
+        }
+        adminCredential = response.credential;
+        cargarPanelAdminConSesion();
+    }
+
+   function cargarPanelAdminConSesion() {
+  dom.adminLoginGate.classList.add("admin-hidden");
+  dom.adminFrame.classList.remove("admin-hidden");
+
+  // Pasamos la credencial como query string para que no se pierda en el redirect
+  dom.adminFrame.src = construirUrlAppsScript({
+    view: "admin",
+    embedded: "1",
+    credential: adminCredential,
+    _: Date.now()
+  });
+}
+
+    window.onAdminGoogleCredential = onAdminGoogleCredential;
+
+    async function toggleAdminFullscreen() {
+        const usingFallback = dom.adminOverlay.classList.contains("maximized");
+
+        if (document.fullscreenElement) {
+            await document.exitFullscreen();
+            return;
+        }
+
+        if (usingFallback) {
+            dom.adminOverlay.classList.remove("maximized");
+            updateAdminFullscreenButton();
+            return;
+        }
+
+        try {
+            if (!dom.adminShell.requestFullscreen) throw new Error("Fullscreen API no disponible");
+            await dom.adminShell.requestFullscreen();
+        } catch (error) {
+            dom.adminOverlay.classList.add("maximized");
+            updateAdminFullscreenButton();
+        }
+    }
+
+    function updateAdminFullscreenButton() {
+        const isLarge = document.fullscreenElement === dom.adminShell || dom.adminOverlay.classList.contains("maximized");
+        dom.adminFullscreenIcon.className = isLarge ? "fas fa-compress" : "fas fa-expand";
+        dom.adminFullscreenLabel.textContent = isLarge ? "Restaurar" : "Pantalla grande";
+        dom.adminFullscreenBtn.title = isLarge ? "Restaurar tamaño" : "Usar pantalla completa";
+        dom.adminFullscreenBtn.setAttribute("aria-pressed", String(isLarge));
+    }
+
+    function cerrarAdministrador() {
+        if (document.fullscreenElement === dom.adminShell) {
+            document.exitFullscreen().catch(() => {});
+        }
+        dom.adminOverlay.classList.remove("maximized");
+        updateAdminFullscreenButton();
+        dom.adminOverlay.classList.remove("visible");
+        dom.adminOverlay.setAttribute("aria-hidden", "true");
+        dom.body.classList.remove("admin-open");
+        dom.adminFrame.src = "about:blank";
+        dom.adminFrame.classList.add("admin-hidden");
+    }
+
+    function activarEasterEgg() {
+        const modoNocheActivo = dom.body.getAttribute('data-theme') === 'dark';
+        let archivoAudio = modoNocheActivo ? 'screamer.mp3' : 'fnaf.mp3';
+        let duracionSegundos = modoNocheActivo ? 2.0 : 2.5;
+        const sonidoEasterEgg = new Audio(archivoAudio);
+        sonidoEasterEgg.volume = 0.6;
+        sonidoEasterEgg.play().catch(err => console.log('Error al reproducir:', err));
+        setTimeout(() => {
+            const fadeOut = setInterval(() => {
+                if (sonidoEasterEgg.volume > 0.1) {
+                    sonidoEasterEgg.volume -= 0.1;
+                } else {
+                    sonidoEasterEgg.pause();
+                    sonidoEasterEgg.currentTime = 0;
+                    clearInterval(fadeOut);
+                }
+            }, 50);
+        }, duracionSegundos * 1000);
+        if (window.confetti) {
+            confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 }, zIndex: 10000, colors: modoNocheActivo ? ['#cc1e3d', '#000000', '#ffffff'] : ['#FFEA00', '#cc1e3d', '#198754', '#0d6efd', '#ffffff'] });
+        }
+    }
+
+    window.onload = async function () {
+        dom.loadingSpinner.style.display = 'block';
+        actualizarConfiguracionOnlineDesdeServidor();
+
+        try {
+            const resultadoCarga = await cargarBasesDeDatos(true);
+            if (resultadoCarga.errores.length) {
+                console.warn("Base cargada con avisos:", resultadoCarga.errores);
+            }
+            dom.statusCarga.innerHTML = "✅ Base de datos lista.";
+        } catch (e) {
+            console.error("Error cargando bases de datos: ", e);
+            dom.statusCarga.innerHTML = "❌ Error al cargar algunos datos.";
+        } finally {
+            dom.loadingSpinner.style.display = 'none';
+            baseCargada = true;
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        inicializarCotizadorOnline();
+        dom.textoBusqueda.addEventListener('input', () => {
+            dom.btnLimpiar.classList.toggle('visible', dom.textoBusqueda.value.length > 0);
+            actualizarSugerenciasDebounced();
+        });
+        dom.textoBusqueda.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                actualizarSugerenciasDebounced.cancelar();
+                buscarInstituto();
+            }
+            if (e.key === 'Escape') dom.sugerencias.style.display = 'none';
+        });
+        dom.sugerencias.addEventListener("click", e => {
+            const item = e.target.closest(".sugerencia-item");
+            if (item) seleccionarSugerencia(item.getAttribute("data-nombre"));
+        });
+        dom.resultado.addEventListener("change", e => {
+            const selector = e.target.closest(".result-program-select");
+            if (!selector) return;
+            const tarjeta = selector.closest("[data-result-index]");
+            actualizarCotizacion(Number(tarjeta.dataset.resultIndex), selector);
+        });
+        dom.resultado.addEventListener("click", e => {
+            const opcionHorario = e.target.closest("[data-action='copy-schedule']");
+            if (opcionHorario) {
+                const tarjeta = opcionHorario.closest("[data-result-index]");
+                copiarResumen(Number(tarjeta.dataset.resultIndex), opcionHorario.dataset.schedule);
+                cerrarMenusCopia();
+                return;
+            }
+
+            const boton = e.target.closest("[data-action='copy-summary']");
+            if (!boton) return;
+            const tarjeta = boton.closest("[data-result-index]");
+            abrirMenuCopia(Number(tarjeta.dataset.resultIndex), boton);
+        });
+        dom.onlineLicenseTabs.addEventListener("click", e => {
+            const boton = e.target.closest("[data-license]");
+            if (boton) seleccionarLicenciaOnline(boton.dataset.license);
+        });
+        dom.onlinePromotionTabs.addEventListener("click", e => {
+            const boton = e.target.closest("[data-promotion]");
+            if (boton) seleccionarPromocionOnline(boton.dataset.promotion);
+        });
+        dom.onlineTermSelect.addEventListener("change", renderizarCotizadorOnline);
+        dom.onlineDiscountInput.addEventListener("input", () => actualizarDescuentoOnline(dom.onlineDiscountInput));
+        dom.onlineDiscountInput.addEventListener("blur", () => normalizarInputDescuentoOnline(dom.onlineDiscountInput));
+        dom.onlineQuote.addEventListener("click", e => {
+            if (e.target.closest("[data-action='copy-online']")) copiarCotizacionOnline();
+        });
+        document.addEventListener("click", e => {
+            if (!dom.busquedaWrap.contains(e.target)) dom.sugerencias.style.display = "none";
+            if (!dom.helpWidget.contains(e.target)) dom.helpWidget.classList.remove('open');
+            if (!e.target.closest(".copy-menu-wrap")) cerrarMenusCopia();
+        });
+        document.addEventListener("keydown", e => {
+            if (e.key === "Escape") cerrarMenusCopia();
+        });
+        document.addEventListener("fullscreenchange", updateAdminFullscreenButton);
+
+        let contadorClicks = 0;
+        let temporizadorClicks = null;
+
+        if (dom.logoHH) {
+            dom.logoHH.style.cursor = 'pointer';
+            dom.logoHH.title = 'Harmon Hall';
+            dom.logoHH.addEventListener('click', () => {
+                contadorClicks++;
+                clearTimeout(temporizadorClicks);
+
+                temporizadorClicks = setTimeout(() => {
+                    if (contadorClicks >= ADMIN_TRIGGER_CLICKS) {
+                        abrirAdministrador();
+                    } else if (contadorClicks === EASTER_EGG_CLICKS) {
+                        activarEasterEgg();
+                    }
+                    contadorClicks = 0;
+                }, 760);
+            });
+        }
+
+        window.addEventListener("message", event => {
+            const data = event.data || {};
+            if (data.type === "HH_ADMIN_DATA_CHANGED") recargarDatosDesdeAdmin();
+            if (data.type === "HH_ADMIN_CLOSE") cerrarAdministrador();
+        });
+    });
+</script>
+</body>
+</html>
